@@ -8,7 +8,7 @@ import { TaskRow } from "@/components/tasks/TaskRow"
 import { AddTaskModal } from "@/components/tasks/AddTaskModal"
 import { Sidebar } from "@/components/dashboard/Sidebar"
 import { cn } from "@/lib/utils"
-import { AITaskPanel } from "@/components/tasks/AITaskPAnel"
+import { AITaskPanel } from "@/components/tasks/AIPanel"
 
 type Tab = "all" | "today" | "week" | "upcoming" | "completed"
 type SortKey = "due" | "priority" | "tag"
