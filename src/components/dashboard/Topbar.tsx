@@ -1,0 +1,22 @@
+import { Bell, Search } from "lucide-react"
+
+export function Topbar() {
+  const today = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+
+  return (
+    <header className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between flex-shrink-0">
+      <p className="text-sm font-medium text-gray-800">Good morning 👋</p>
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full">
+          {today}
+        </span>
+        <button className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
+          <Bell size={14} />
+        </button>
+        <button className="w-8 h-8 rounded-lg border border-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
+          <Search size={14} />
+        </button>
+      </div>
+    </header>
+  )
+}
