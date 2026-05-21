@@ -1,56 +1,92 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Task, INITIAL_TASKS } from "@/lib/tasks"
-
-const STORAGE_KEY = "ai-life-os-tasks"
+import { Task } from "@/lib/tasks"
+import { useSession } from "next-auth/react"
 
 export function useTasks() {
+  const { data: session, status } = useSession()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored) {
-        const parsed: Task[] = JSON.parse(stored)
-        setTasks(parsed)
-      } else {
-        setTasks(INITIAL_TASKS)
-      }
-    } catch {
-      setTasks(INITIAL_TASKS)
+    if (status === "authenticated") {
+      fetchTasks()
+    } else if (status === "unauthenticated") {
+      // fallback to localStorage if not logged in
+      try {
+        const stored = localStorage.getItem("ai-life-os-tasks")
+        setTasks(stored ? JSON.parse(stored) : [])
+      } catch { setTasks([]) }
+      setLoaded(true)
     }
-    setLoaded(true)
-  }, [])
+  }, [status])
 
-  useEffect(() => {
-    if (!loaded) return
+  async function fetchTasks() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
-    } catch {}
-  }, [tasks, loaded])
+      const res = await fetch("/api/tasks")
+      const data = await res.json()
+      setTasks(data.tasks || [])
+    } catch { setTasks([]) }
+    setLoaded(true)
+  }
 
-  function addTask(data: Omit<Task, "id" | "createdAt">) {
+  async function addTask(data: Omit<Task, "id" | "createdAt">) {
     const newTask: Task = {
       ...data,
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
     }
     setTasks(prev => [newTask, ...prev])
+
+    if (status === "authenticated") {
+      await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newTask),
+      })
+    } else {
+      localStorage.setItem("ai-life-os-tasks", JSON.stringify([newTask, ...tasks]))
+    }
   }
 
-  function toggleTask(id: string) {
+  async function toggleTask(id: string) {
+    const task = tasks.find(t => t.id === id)
+    if (!task) return
     setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
+
+    if (status === "authenticated") {
+      await fetch("/api/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, done: !task.done }),
+      })
+    }
   }
 
-  function deleteTask(id: string) {
+  async function deleteTask(id: string) {
     setTasks(prev => prev.filter(t => t.id !== id))
+
+    if (status === "authenticated") {
+      await fetch("/api/tasks", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      })
+    }
   }
 
-  function updateTask(id: string, updates: Partial<Task>) {
+  async function updateTask(id: string, updates: Partial<Task>) {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))
+
+    if (status === "authenticated" && updates.text) {
+      await fetch("/api/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, text: updates.text }),
+      })
+    }
   }
 
-  return { tasks, loaded, addTask, toggleTask, deleteTask, updateTask }
+  return { tasks, loaded: loaded || status === "loading", addTask, toggleTask, deleteTask, updateTask }
 }
