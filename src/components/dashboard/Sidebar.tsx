@@ -3,6 +3,8 @@
 import { LayoutDashboard, Target, CheckSquare, Calendar, Mail, BarChart2, BookOpen, Smile, Settings, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { useSession, signIn, signOut } from "next-auth/react"
+
 
 const NAV_WORKSPACE = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/",        page: "dashboard" },
@@ -22,6 +24,7 @@ const NAV_AGENTS = [
 interface Props { activePage?: string }
 
 export function Sidebar({ activePage = "dashboard" }: Props) {
+  const { data: session } = useSession()
   return (
     <aside className="w-56 flex flex-col py-4 flex-shrink-0" style={{ background: "#1A1535" }}>
       {/* Logo */}
@@ -95,16 +98,36 @@ export function Sidebar({ activePage = "dashboard" }: Props) {
       </div>
 
       {/* User */}
-      <div className="px-4 pt-2 flex items-center gap-2" style={{ borderTop: "0.5px solid #2C2850" }}>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0"
-          style={{ background: "linear-gradient(135deg,#7F77DD,#534AB7)" }}>
-          KR
-        </div>
-        <div>
-          <p className="text-sm font-medium text-white leading-tight">Krithika Suwarna</p>
-          <p className="text-[10px]" style={{ color: "#7A7A9A" }}>Pro plan</p>
-        </div>
+      {/* User / Auth */}
+<div className="px-4 pt-2 flex items-center gap-2" style={{ borderTop: "0.5px solid #2C2850" }}>
+  {session ? (
+    <>
+      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0"
+        style={{ background: "linear-gradient(135deg,#7F77DD,#534AB7)" }}>
+        {session.user?.name?.charAt(0) || "K"}
       </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-white leading-tight truncate">{session.user?.name}</p>
+        <button onClick={() => signOut()} className="text-[10px]" style={{ color: "#7A7A9A" }}>
+          Sign out
+        </button>
+      </div>
+    </>
+  ) : (
+    <>
+      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0"
+        style={{ background: "#2C2850" }}>
+        ?
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium leading-tight" style={{ color: "#9B99C4" }}>Not signed in</p>
+        <button onClick={() => signIn("google")} className="text-[10px]" style={{ color: "#7F77DD" }}>
+          Sign in
+        </button>
+      </div>
+    </>
+  )}
+</div>
     </aside>
   )
 }
