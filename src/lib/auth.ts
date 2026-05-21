@@ -30,7 +30,7 @@ export const authOptions: AuthOptions = {
       return session
     },
   },
-  pages: { signIn: "/auth/signin" },
+  pages: { signIn: "/login" },
   secret: process.env.NEXTAUTH_SECRET,
   jwt: { maxAge: 60 * 60 * 24 },
 }
