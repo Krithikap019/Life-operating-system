@@ -11,7 +11,7 @@ export function AIInsight({ digest }: Props) {
         <Sparkles size={12} className="text-brand-100" />
       </div>
       <p className="text-xs text-brand-800 leading-relaxed">
-        <span className="font-medium text-brand-900">AI insights — </span>
+        <span className="font-medium text-brand-900">AI insightss — </span>
         {digest || DEFAULT}
       </p>
     </div>
