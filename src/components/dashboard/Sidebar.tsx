@@ -101,7 +101,7 @@ export function Sidebar({ activePage = "dashboard" }: Props) {
           KR
         </div>
         <div>
-          <p className="text-sm font-medium text-white leading-tight">Krithika</p>
+          <p className="text-sm font-medium text-white leading-tight">Krithika Suwarna</p>
           <p className="text-[10px]" style={{ color: "#7A7A9A" }}>Pro plan</p>
         </div>
       </div>
