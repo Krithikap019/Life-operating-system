@@ -76,17 +76,22 @@ export function useTasks() {
     }
   }
 
-  async function updateTask(id: string, updates: Partial<Task>) {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t))
+async function updateTask(id: string, updates: Partial<Task>) {
+  const updatedTasks = tasks.map(t => t.id === id ? { ...t, ...updates } : t)
+  setTasks(updatedTasks)
 
-    if (status === "authenticated" && updates.text) {
-      await fetch("/api/tasks", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, text: updates.text }),
-      })
-    }
+  if (status === "authenticated" && updates.text) {
+    await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, text: updates.text }),
+    })
+  } else if (status === "unauthenticated") {
+    try {
+      localStorage.setItem("ai-life-os-tasks", JSON.stringify(updatedTasks))
+    } catch {}
   }
+}
 
   return { tasks, loaded: loaded || status === "loading", addTask, toggleTask, deleteTask, updateTask }
 }
