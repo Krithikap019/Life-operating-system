@@ -21,7 +21,7 @@ export function MetricsRow() {
   const remaining = total - done
 
   const CARDS = [
-    { label: "Tasks today", value: remaining, sub: `${done} done`, dotColor: "#1D9E75" },
+    { label: "Tasks today", value: total, sub: `${done} done`, dotColor: "#1D9E75" },
     { label: "Unread emails", value: 12, sub: "2 urgent", dotColor: "#D85A30" },
     { label: "Meetings", value: 3, sub: "Next 10 AM", dotColor: "#534AB7" },
     { label: "Focus score", value: "82%", sub: "This week", dotColor: "#BA7517" },
