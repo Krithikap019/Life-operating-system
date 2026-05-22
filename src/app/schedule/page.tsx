@@ -5,6 +5,8 @@ import { Sidebar } from "@/components/dashboard/Sidebar"
 import { Plus, Sparkles, Repeat, Check, X, Edit2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+
+
 interface ScheduleEvent {
   id: string
   title: string
@@ -82,6 +84,9 @@ export default function SchedulePage() {
   const [newEvent, setNewEvent] = useState<Partial<ScheduleEvent>>({
     title: "", startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, type: "other", notes: ""
   })
+  const [aiInput, setAiInput] = useState("")
+const [aiLoading, setAiLoading] = useState(false)
+const [aiResponse, setAiResponse] = useState("")
 
   const days = [0, 1, 2].map(getDayLabel)
 
@@ -200,6 +205,35 @@ useEffect(() => {
     setNewEvent({ title: "", startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, type: "other", notes: "" })
   }
 
+  async function handleAiEdit() {
+  if (!selectedEvent || !aiInput.trim()) return
+  setAiLoading(true)
+  setAiResponse("")
+  try {
+    const res = await fetch("/api/schedule-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: aiInput, event: selectedEvent }),
+    })
+    const data = await res.json()
+    const updated = {
+      ...selectedEvent,
+      ...(data.startTime && { startTime: data.startTime }),
+      ...(data.endTime && { endTime: data.endTime }),
+      ...(data.title && { title: data.title }),
+      ...(data.notes && { notes: data.notes }),
+    }
+    updateEvent(updated, selectedEvent.repeat)
+    if (data.notes) setEditingNotes(data.notes)
+    setAiResponse(data.response || "Done!")
+    setAiInput("")
+  } catch {
+    setAiResponse("Something went wrong. Try again.")
+  } finally {
+    setAiLoading(false)
+  }
+}
+
   const nextEvent = selectedEvent ? events.find(e => e.startTime > selectedEvent.endTime) : null
 
   return (
@@ -213,13 +247,30 @@ useEffect(() => {
           <div className="flex items-center justify-between py-3">
             <div className="flex items-center gap-4">
               <p className="text-base font-medium text-gray-800">Schedule</p>
-              <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5">
+  
+            </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1.5 bg-brand-600 text-white text-sm px-4 py-2 rounded-full hover:bg-brand-800 transition-colors"
+            >
+              <Plus size={12} /> Add event
+            </button>
+          </div>
+        </div>
+
+        {/* 3 dates*/}
+                <div className="bg-white border-b border-gray-100 px-5 flex flex-col flex-shrink-0">
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-4">
+              <p className="text-base font-medium text-gray-800"></p>
+                        <div className="bg-white border-b border-gray-100 px-5 flex items-center flex-shrink-0">
+          <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5">
                 {days.map((day, i) => (
                   <button
                     key={day.date}
                     onClick={() => { setActiveDay(i); setSelectedEvent(null) }}
                     className={cn(
-                      "px-3 py-1 rounded-full text-xs transition-colors",
+                      "px-3 py-1 rounded-full text-sm transition-colors",
                       activeDay === i
                         ? "bg-white text-brand-600 font-medium shadow-sm"
                         : "text-gray-500 hover:text-gray-700"
@@ -230,13 +281,9 @@ useEffect(() => {
                   </button>
                 ))}
               </div>
+          </div>
+  
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 bg-brand-600 text-white text-xs px-4 py-2 rounded-full hover:bg-brand-800 transition-colors"
-            >
-              <Plus size={12} /> Add event
-            </button>
           </div>
         </div>
 
@@ -244,9 +291,11 @@ useEffect(() => {
 
           {/* Timeline */}
           <div className="w-96 flex-shrink-0 bg-white border-r border-gray-100 overflow-y-auto">
-            <div className="px-3 py-2 bg-brand-50 border-b border-brand-100">
-              <p className="text-sm font-medium text-brand-700">{days[activeDay].label} — {days[activeDay].sub}</p>
-            </div>
+          <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
+            <p className="text-sm font-medium text-gray-700">{days[activeDay].label} — {days[activeDay].sub}</p>
+          </div>
+
+
             {/* Now banner inside timeline */}
 {nowEvent && (
   <div
@@ -469,62 +518,75 @@ useEffect(() => {
                 </div>
               </>
             )}
+
           </div>
+          
 
           {/* Habits sidebar */}
-          <div className="w-44 flex-shrink-0 border-l border-gray-100 bg-white overflow-y-auto p-3 flex flex-col gap-3">
-            <div className="bg-brand-50 rounded-xl p-3">
-              <p className="text-[9px] text-brand-600 mb-1">Focus score</p>
-              <p className="text-xl font-medium text-brand-900">82%</p>
-              <p className="text-[9px] text-brand-400">This week</p>
-            </div>
 
-            <div>
-              <p className="text-xs font-medium text-gray-700 flex items-center gap-1.5 mb-2">
-                <span className="text-brand-600">↗</span> Habits
-              </p>
-              {[
-                { name: "Reading",   pct: 43, days: [1,1,0,1,0,0,0], color: "#534AB7" },
-                { name: "Exercise",  pct: 71, days: [1,1,1,1,0,1,0], color: "#1D9E75" },
-                { name: "Deep work", pct: 86, days: [1,1,1,1,1,0,1], color: "#7F77DD" },
-              ].map(h => (
-                <div key={h.name} className="mb-3">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-[9px] text-gray-500">{h.name}</span>
-                    <span className="text-[9px] text-gray-400">{h.days.filter(Boolean).length}/7</span>
-                  </div>
-                  <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width: `${h.pct}%`, background: h.color }} />
-                  </div>
-                  <div className="flex gap-1 mt-1.5">
-                    {["M","T","W","T","F","S","S"].map((d, i) => (
-                      <div
-                        key={i}
-                        className="w-4 h-4 rounded flex items-center justify-center text-[7px]"
-                        style={{
-                          background: h.days[i] ? h.color : "var(--color-background-secondary)",
-                          color: h.days[i] ? "#fff" : "var(--color-text-tertiary)"
-                        }}
-                      >
-                        {d}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+{/* AI sidebar */}
+<div className="w-72 flex-shrink-0 border-l border-gray-100 bg-white flex flex-col overflow-hidden">
+  <div className="px-4 py-3 flex-shrink-0 flex items-center gap-2" style={{background:"linear-gradient(135deg,#534AB7,#7F77DD)"}}>
+    <Sparkles size={14} className="text-white" />
+    <span className="text-sm font-medium text-white">Ask AI to update event</span>
+  </div>
 
-            <div className="border-t border-gray-100 pt-3">
-              <p className="text-[9px] font-medium text-gray-500 mb-2">Upcoming</p>
-              {events.filter(e => e.startTime > nowStr).slice(0, 4).map(e => (
-                <div key={e.id} className="flex items-center gap-1.5 py-1.5 border-b border-gray-50 last:border-0">
-                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: COLOR_MAP[e.color].dot }} />
-                  <span className="text-[9px] text-gray-500 flex-1 truncate">{e.title}</span>
-                  <span className="text-[8px] text-gray-400">{formatTime(e.startTime)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+  <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
+    {!selectedEvent ? (
+      <div className="text-center py-6">
+        <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center mx-auto mb-2">
+          <Sparkles size={18} className="text-brand-600" />
+        </div>
+        <p className="text-xs text-gray-500 leading-relaxed">Select an event then ask AI to update its time, title or notes.</p>
+      </div>
+    ) : (
+      <div className="bg-brand-50 rounded-xl p-3">
+        <p className="text-xs font-medium text-brand-800">{selectedEvent.title}</p>
+        <p className="text-[10px] text-brand-600 mt-0.5">{formatTime(selectedEvent.startTime)} – {formatTime(selectedEvent.endTime)}</p>
+      </div>
+    )}
+
+    {aiResponse && (
+      <div className="flex items-start gap-2 bg-brand-50 rounded-xl px-3 py-2.5">
+        <Sparkles size={11} className="text-brand-600 mt-0.5 flex-shrink-0" />
+        <p className="text-xs text-brand-800 leading-relaxed">{aiResponse}</p>
+      </div>
+    )}
+  </div>
+
+  {/* Suggestion chips */}
+  <div className="px-3 pb-2 flex flex-col gap-1.5">
+    <p className="text-[10px] text-gray-400">Try asking:</p>
+    {["Move to 3pm", "Make it 2 hours", "Rename to Team sync", "Push back 30 mins"].map(s => (
+      <button
+        key={s}
+        onClick={() => setAiInput(`"${s}"`)}
+        className="text-left text-[10px] px-3 py-2 rounded-lg border border-gray-100 bg-gray-50 text-gray-500 hover:border-brand-200 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+      >
+        &quot;{s}&quot;
+      </button>
+    ))}
+  </div>
+
+  {/* Input */}
+  <div className="px-3 py-2.5 border-t border-gray-100 flex items-center gap-2 flex-shrink-0">
+    <input
+      value={aiInput}
+      onChange={e => setAiInput(e.target.value)}
+      onKeyDown={e => e.key === "Enter" && handleAiEdit()}
+      placeholder="Ask AI to edit event…"
+      className="flex-1 text-xs border border-gray-200 rounded-full px-3 py-2 bg-gray-50 outline-none focus:border-brand-300 text-gray-800 placeholder-gray-400"
+    />
+    <button
+      onClick={handleAiEdit}
+      disabled={!aiInput.trim() || aiLoading || !selectedEvent}
+      className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white hover:bg-brand-800 disabled:opacity-40 transition-colors flex-shrink-0"
+    >
+      {aiLoading ? <span className="text-[10px]">...</span> : <Sparkles size={12} />}
+    </button>
+  </div>
+</div>
+
         </div>
       </div>
 
