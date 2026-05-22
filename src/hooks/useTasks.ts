@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Task } from "@/lib/tasks"
+import { Task, INITIAL_TASKS } from "@/lib/tasks"
 import { useSession } from "next-auth/react"
 
 export function useTasks() {
