@@ -50,19 +50,22 @@ export function useTasks() {
     }
   }
 
-  async function toggleTask(id: string) {
-    const task = tasks.find(t => t.id === id)
-    if (!task) return
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
+async function toggleTask(id: string) {
+  const task = tasks.find(t => t.id === id)
+  if (!task) return
+  const updatedTasks = tasks.map(t => t.id === id ? { ...t, done: !t.done } : t)
+  setTasks(updatedTasks)
 
-    if (status === "authenticated") {
-      await fetch("/api/tasks", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, done: !task.done }),
-      })
-    }
+  if (status === "authenticated") {
+    await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, done: !task.done }),
+    })
+  } else {
+    localStorage.setItem("ai-life-os-tasks", JSON.stringify(updatedTasks))
   }
+}
 
   async function deleteTask(id: string) {
     setTasks(prev => prev.filter(t => t.id !== id))
