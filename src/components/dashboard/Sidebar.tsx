@@ -9,7 +9,7 @@ import { useSession, signIn, signOut } from "next-auth/react"
 const NAV_WORKSPACE = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/",        page: "dashboard" },
   { icon: CheckSquare,     label: "Tasks",      href: "/tasks",   page: "tasks" },
-  { icon: Clock,           label: "Schedule",      href: "/Schedule",   page: "schedule" },
+  { icon: Clock, label: "Schedule", href: "/schedule", page: "schedule" },
   { icon: Target,          label: "Goals",      href: "/goals",   page: "goals" },
   { icon: Calendar,        label: "Calendar",   href: "/calendar",page: "calendar" },
 ]
