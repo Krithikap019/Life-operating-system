@@ -91,10 +91,15 @@ export function AITaskPanel({ onAddTask }: Props) {
 
 
    try {
-     const res = await fetch("/api/tasks-ai", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       body: JSON.stringify({ message: query }),
+      const now = new Date()
+      const localDate = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
+      const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][now.getDay()]
+
+  const res = await fetch("/api/tasks-ai", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ message: query, localDate, dayName }),
+})
      })
      const data = await res.json()
 

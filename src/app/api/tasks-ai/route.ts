@@ -15,11 +15,12 @@ function datePlusDays(n: number) {
 }
 
 export async function POST(req: NextRequest) {
-  const { message } = await req.json()
-  const today = localToday()
-  const tomorrow = datePlusDays(1)
-  const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-  const todayName = dayNames[new Date().getDay()]
+  const { message, localDate, dayName } = await req.json()
+  const today = localDate || localToday()
+  const todayName = dayName || ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][new Date().getDay()]
+  const [y, m, d] = today.split("-").map(Number)
+  const tomorrowDate = new Date(y, m-1, d+1)
+  const tomorrow = `${tomorrowDate.getFullYear()}-${String(tomorrowDate.getMonth()+1).padStart(2,"0")}-${String(tomorrowDate.getDate()).padStart(2,"0")}`
 
   const res = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
