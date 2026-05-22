@@ -33,20 +33,22 @@ export function TasksCard() {
     if (adding) inputRef.current?.focus()
   }, [adding])
 
-  function handleAdd() {
-    const text = newText.trim()
-    if (!text) return
-    addTask({
-      text,
-      done: false,
-      tag: newTag.label,
-      tagColor: newTag.color,
-      priority: "medium",
-      dueDate: new Date().toISOString().split("T")[0],
-    })
-    setNewText("")
-    setAdding(false)
-  }
+function handleAdd() {
+  const text = newText.trim()
+  if (!text) return
+  const now = new Date()
+  const localToday = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
+  addTask({
+    text,
+    done: false,
+    tag: newTag.label,
+    tagColor: newTag.color,
+    priority: "medium",
+    dueDate: localToday,
+  })
+  setNewText("")
+  setAdding(false)
+}
 
   function handleKey(e: React.KeyboardEvent) {
     if (e.key === "Enter") handleAdd()
@@ -54,10 +56,14 @@ export function TasksCard() {
   }
 
   // Show only today's tasks (max 5)
-  const today = new Date().toISOString().split("T")[0]
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
   const todayTasks = tasks
-    .filter(t => t.dueDate === today || t.dueDate === null || t.dueDate < today)
-    .slice(0, 5)
+  .filter(t => t.dueDate !== null && t.dueDate <= today)
+  .sort((a, b) => {
+    if (a.done === b.done) return 0
+    return a.done ? 1 : -1  // completed tasks go to bottom
+  })
 
   const remaining = todayTasks.filter(t => !t.done).length
 
