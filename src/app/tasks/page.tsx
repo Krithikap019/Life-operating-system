@@ -167,8 +167,10 @@ export default function TasksPage() {
     )
   }
 
-  const todayStr = new Date().toISOString().split("T")[0]
-  const weekEndStr = new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0]
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
+  const weekEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7)
+  const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth()+1).padStart(2,"0")}-${String(weekEnd.getDate()).padStart(2,"0")}`
   if (!loaded) return (
     <div className="flex h-screen items-center justify-center text-sm text-gray-400">
       Loading tasks…

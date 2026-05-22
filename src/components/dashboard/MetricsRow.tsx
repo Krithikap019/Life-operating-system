@@ -6,9 +6,9 @@ export function MetricsRow() {
   const { tasks } = useTasks()
 
   const today = new Date().toISOString().split("T")[0]
-  const todayTasks = tasks.filter(t => !t.dueDate || t.dueDate <= today)
-  const doneTasks = todayTasks.filter(t => t.done).length
-  const totalTasks = todayTasks.length
+  const todayTasks = tasks.filter(t => t.dueDate === today && !t.done)
+  const doneTasks = tasks.filter(t => t.dueDate === today && t.done).length
+  const totalTasks = todayTasks.length + doneTasks
 
   const CARDS = [
     {
