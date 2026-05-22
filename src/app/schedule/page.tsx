@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/dashboard/Sidebar"
-import { Plus, Sparkles, Repeat, Check, X, Edit2 } from "lucide-react"
+import { Plus, Sparkles, Repeat, Check, X, Edit2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ScheduleEvent {
@@ -14,11 +14,6 @@ interface ScheduleEvent {
   repeat: boolean
   notes: string
   type: "focus" | "meeting" | "habit" | "free" | "other"
-}
-
-interface DaySchedule {
-  date: string
-  events: ScheduleEvent[]
 }
 
 const COLOR_MAP = {
@@ -38,13 +33,13 @@ const TYPE_BADGE: Record<string, string> = {
 }
 
 const DEFAULT_EVENTS: ScheduleEvent[] = [
-  { id: "1", title: "Morning routine",    startTime: "08:00", endTime: "09:00", color: "teal",   repeat: true,  notes: "",                                                                        type: "habit"   },
-  { id: "2", title: "Deep work",          startTime: "09:00", endTime: "10:00", color: "purple", repeat: true,  notes: "Focus block — no meetings, no distractions.",                            type: "focus"   },
-  { id: "3", title: "Team standup",       startTime: "10:00", endTime: "10:30", color: "teal",   repeat: true,  notes: "",                                                                        type: "meeting" },
-  { id: "4", title: "Lunch break",        startTime: "12:00", endTime: "13:00", color: "gray",   repeat: true,  notes: "",                                                                        type: "free"    },
-  { id: "5", title: "Interview prep",     startTime: "14:00", endTime: "15:30", color: "coral",  repeat: false, notes: "Prep for OpenAI role — review system design and ML questions.",           type: "other"   },
-  { id: "6", title: "Review PR + reply",  startTime: "16:00", endTime: "17:00", color: "amber",  repeat: false, notes: "Review PR #42 and reply to Priya about deadline.",                        type: "other"   },
-  { id: "7", title: "Reading habit",      startTime: "20:00", endTime: "20:30", color: "purple", repeat: true,  notes: "AI suggested based on your reading goal.",                               type: "habit"   },
+  { id: "1", title: "Morning routine",   startTime: "08:00", endTime: "09:00", color: "teal",   repeat: true,  notes: "",                                                              type: "habit"   },
+  { id: "2", title: "Deep work",         startTime: "09:00", endTime: "10:00", color: "purple", repeat: true,  notes: "Focus block — no meetings, no distractions.",                   type: "focus"   },
+  { id: "3", title: "Team standup",      startTime: "10:00", endTime: "10:30", color: "teal",   repeat: true,  notes: "",                                                              type: "meeting" },
+  { id: "4", title: "Lunch break",       startTime: "12:00", endTime: "13:00", color: "gray",   repeat: true,  notes: "",                                                              type: "free"    },
+  { id: "5", title: "Interview prep",    startTime: "14:00", endTime: "15:30", color: "coral",  repeat: false, notes: "Prep for OpenAI role — review system design and ML questions.", type: "other"   },
+  { id: "6", title: "Review PR + reply", startTime: "16:00", endTime: "17:00", color: "amber",  repeat: false, notes: "Review PR #42 and reply to Priya about deadline.",               type: "other"   },
+  { id: "7", title: "Reading habit",     startTime: "20:00", endTime: "20:30", color: "purple", repeat: true,  notes: "AI suggested based on your reading goal.",                      type: "habit"   },
 ]
 
 function formatTime(t: string) {
@@ -59,7 +54,7 @@ function getDayLabel(offset: number): { label: string; date: string; sub: string
   d.setDate(d.getDate() + offset)
   const label = offset === 0 ? "Today" : offset === 1 ? "Tomorrow" : d.toLocaleDateString("en-US", { weekday: "long" })
   const sub = d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-  const date = d.toISOString().split("T")[0]
+  const date = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`
   return { label, date, sub }
 }
 
@@ -90,16 +85,13 @@ export default function SchedulePage() {
 
   const days = [0, 1, 2].map(getDayLabel)
 
-  // Load from localStorage
-  useEffect(() => {
+useEffect(() => {
     const stored = loadSchedule()
-    // Seed default events for each day if not set
     const seeded = { ...stored }
     days.forEach(({ date }) => {
       if (!seeded[date]) {
         seeded[date] = DEFAULT_EVENTS.map(e => ({ ...e }))
       } else {
-        // Add any repeat events that aren't already in this day
         DEFAULT_EVENTS.filter(e => e.repeat).forEach(re => {
           if (!seeded[date].find(e => e.id === re.id)) {
             seeded[date] = [...seeded[date], { ...re }].sort((a, b) => a.startTime.localeCompare(b.startTime))
@@ -109,10 +101,29 @@ export default function SchedulePage() {
     })
     setScheduleData(seeded)
     saveSchedule(seeded)
+
+    // Auto-select current event or next upcoming event
+    const todayEvents = (seeded[days[0].date] || []).sort((a, b) => a.startTime.localeCompare(b.startTime))
+    const current = todayEvents.find(e => nowStr >= e.startTime && nowStr <= e.endTime)
+    const next = todayEvents.find(e => e.startTime > nowStr)
+    const autoSelect = current || next
+    if (autoSelect) {
+      setSelectedEvent(autoSelect)
+      setEditingNotes(autoSelect.notes)
+      setEditingTitleText(autoSelect.title)
+    }
   }, [])
 
   const currentDate = days[activeDay].date
   const events = (scheduleData[currentDate] || []).sort((a, b) => a.startTime.localeCompare(b.startTime))
+
+  const now = new Date()
+  const nowStr = `${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`
+  const nowEvent = activeDay === 0 ? events.find(e => nowStr >= e.startTime && nowStr <= e.endTime) : null
+
+  function isNow(ev: ScheduleEvent) {
+    return activeDay === 0 && nowStr >= ev.startTime && nowStr <= ev.endTime
+  }
 
   function selectEvent(ev: ScheduleEvent) {
     setSelectedEvent(ev)
@@ -139,14 +150,12 @@ export default function SchedulePage() {
 
   function saveNotes() {
     if (!selectedEvent) return
-    const updated = { ...selectedEvent, notes: editingNotes }
-    updateEvent(updated)
+    updateEvent({ ...selectedEvent, notes: editingNotes })
   }
 
   function saveTitle() {
     if (!selectedEvent || !editingTitleText.trim()) return
-    const updated = { ...selectedEvent, title: editingTitleText.trim() }
-    updateEvent(updated, selectedEvent.repeat)
+    updateEvent({ ...selectedEvent, title: editingTitleText.trim() }, selectedEvent.repeat)
     setEditingTitle(false)
   }
 
@@ -191,54 +200,66 @@ export default function SchedulePage() {
     setNewEvent({ title: "", startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, type: "other", notes: "" })
   }
 
-  const now = new Date()
-  const nowStr = `${now.getHours().toString().padStart(2,"0")}:${now.getMinutes().toString().padStart(2,"0")}`
-
-  function isNow(ev: ScheduleEvent) {
-    return activeDay === 0 && nowStr >= ev.startTime && nowStr <= ev.endTime
-  }
+  const nextEvent = selectedEvent ? events.find(e => e.startTime > selectedEvent.endTime) : null
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F4F0]">
       <Sidebar activePage="schedule" />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+
         {/* Topbar */}
-        <div className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <p className="text-sm font-medium text-gray-800">Schedule</p>
-            <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5">
-              {days.map((day, i) => (
-                <button
-                  key={day.date}
-                  onClick={() => { setActiveDay(i); setSelectedEvent(null) }}
-                  className={cn(
-                    "px-3 py-1 rounded-full text-xs transition-colors",
-                    activeDay === i
-                      ? "bg-white text-brand-600 font-medium shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  )}
-                >
-                  {day.label}
-                  <span className="ml-1 text-[10px] text-gray-400">{day.sub}</span>
-                </button>
-              ))}
+        <div className="bg-white border-b border-gray-100 px-5 flex flex-col flex-shrink-0">
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-4">
+              <p className="text-base font-medium text-gray-800">Schedule</p>
+              <div className="flex gap-0.5 bg-gray-100 rounded-full p-0.5">
+                {days.map((day, i) => (
+                  <button
+                    key={day.date}
+                    onClick={() => { setActiveDay(i); setSelectedEvent(null) }}
+                    className={cn(
+                      "px-3 py-1 rounded-full text-xs transition-colors",
+                      activeDay === i
+                        ? "bg-white text-brand-600 font-medium shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    )}
+                  >
+                    {day.label}
+                    <span className="ml-1 text-[10px] text-gray-400">{day.sub}</span>
+                  </button>
+                ))}
+              </div>
             </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-1.5 bg-brand-600 text-white text-xs px-4 py-2 rounded-full hover:bg-brand-800 transition-colors"
+            >
+              <Plus size={12} /> Add event
+            </button>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 bg-brand-600 text-white text-xs px-4 py-2 rounded-full hover:bg-brand-800 transition-colors"
-          >
-            <Plus size={12} /> Add event
-          </button>
         </div>
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
+
           {/* Timeline */}
-          <div className="w-56 flex-shrink-0 bg-white border-r border-gray-100 overflow-y-auto">
+          <div className="w-96 flex-shrink-0 bg-white border-r border-gray-100 overflow-y-auto">
             <div className="px-3 py-2 bg-brand-50 border-b border-brand-100">
-              <p className="text-xs font-medium text-brand-700">{days[activeDay].label} — {days[activeDay].sub}</p>
+              <p className="text-sm font-medium text-brand-700">{days[activeDay].label} — {days[activeDay].sub}</p>
             </div>
+            {/* Now banner inside timeline */}
+{nowEvent && (
+  <div
+    onClick={() => selectEvent(nowEvent)}
+    className="mx-3 mt-3 mb-1 flex items-center gap-3 bg-brand-600 rounded-xl px-3 py-2.5 cursor-pointer hover:bg-brand-800 transition-colors"
+  >
+    <div className="w-2 h-2 rounded-full bg-white animate-pulse flex-shrink-0" />
+    <div className="flex-1 min-w-0">
+      <div className="text-sm font-medium text-white truncate">{nowEvent.title}</div>
+      <div className="text-xs text-brand-200">{formatTime(nowEvent.startTime)} – {formatTime(nowEvent.endTime)}</div>
+    </div>
+  </div>
+)}
 
             {events.length === 0 && (
               <div className="flex flex-col items-center justify-center h-40 gap-2 text-gray-400">
@@ -251,9 +272,9 @@ export default function SchedulePage() {
               const c = COLOR_MAP[ev.color]
               const current = isNow(ev)
               return (
-                <div key={ev.id} className="flex items-stretch min-h-[52px]">
-                  <div className="w-10 flex flex-col items-end pr-2 pt-1.5 flex-shrink-0">
-                    <span className="text-[9px] text-gray-400 whitespace-nowrap">{formatTime(ev.startTime)}</span>
+                <div key={ev.id} className="flex items-stretch min-h-[56px]">
+                  <div className="w-16 flex flex-col items-end pr-2 pt-1.5 flex-shrink-0">
+                    <span className="text-[11px] text-gray-400 whitespace-nowrap">{formatTime(ev.startTime)}</span>
                   </div>
                   <div className="w-4 flex flex-col items-center flex-shrink-0">
                     <div className="w-2 h-2 rounded-full mt-2 flex-shrink-0 border-2 border-white" style={{ background: c.dot }} />
@@ -263,13 +284,13 @@ export default function SchedulePage() {
                     <div
                       onClick={() => selectEvent(ev)}
                       className={cn(
-                        "rounded-lg px-2.5 py-2 cursor-pointer transition-all",
+                        "rounded-lg px-3 py-2 cursor-pointer transition-all",
                         c.bg,
-                        selectedEvent?.id === ev.id && "ring-1.5 ring-brand-400",
+                        selectedEvent?.id === ev.id ? "ring-2 ring-brand-400" : "",
                         "hover:opacity-90"
                       )}
                     >
-                      <div className={cn("text-[10px] font-medium leading-tight flex items-center flex-wrap gap-1", c.text)}>
+                      <div className={cn("text-sm font-medium leading-tight flex items-center flex-wrap gap-1", c.text)}>
                         {ev.title}
                         {current && (
                           <span className="inline-flex items-center gap-0.5 text-[8px] px-1.5 py-0.5 rounded-full bg-brand-600 text-brand-100">now</span>
@@ -280,7 +301,7 @@ export default function SchedulePage() {
                           </span>
                         )}
                       </div>
-                      <div className={cn("text-[9px] mt-0.5 opacity-75", c.text)}>
+                      <div className={cn("text-[11px] mt-0.5 opacity-75", c.text)}>
                         {formatTime(ev.startTime)} – {formatTime(ev.endTime)}
                       </div>
                     </div>
@@ -293,15 +314,40 @@ export default function SchedulePage() {
           {/* Detail panel */}
           <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-3 min-w-0">
             {!selectedEvent ? (
-              <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                  <Sparkles size={20} className="text-gray-300" />
-                </div>
-                <p className="text-sm">Click an event to view details</p>
-              </div>
+              <div className="flex flex-col items-center justify-center h-full gap-4 text-gray-400">
+  {activeDay === 0 && events.length > 0 && events.every(e => e.endTime < nowStr) ? (
+    <>
+      <div className="text-4xl">🎉</div>
+      <div className="text-center">
+        <p className="text-base font-medium text-gray-700">You&apos;re done for today!</p>
+        <p className="text-sm text-gray-400 mt-1">All events completed. Great work today.</p>
+      </div>
+      <div className="flex flex-col gap-2 mt-2 w-full max-w-xs">
+        <div className="bg-teal-50 rounded-xl px-4 py-3 text-center">
+          <p className="text-xs text-teal-700 font-medium">🌙 Time to wind down</p>
+          <p className="text-[11px] text-teal-600 mt-0.5">Review tomorrow&apos;s schedule to stay ahead</p>
+        </div>
+        <button
+          onClick={() => { setActiveDay(1); setSelectedEvent(null) }}
+          className="text-xs text-brand-600 bg-brand-50 rounded-xl px-4 py-2.5 hover:bg-brand-100 transition-colors"
+        >
+          See tomorrow&apos;s schedule →
+        </button>
+      </div>
+    </>
+  ) : (
+    <>
+      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+        <Sparkles size={20} className="text-gray-300" />
+      </div>
+      <p className="text-sm">Click an event to view details</p>
+    </>
+  )}
+</div>
+
             ) : (
               <>
-                {/* Event detail card */}
+                {/* Detail card */}
                 <div className="bg-white border border-gray-100 rounded-2xl p-5">
                   {/* Header */}
                   <div className="flex items-start gap-3 mb-4">
@@ -329,7 +375,7 @@ export default function SchedulePage() {
                       )}
                       <p className="text-xs text-gray-400 mt-0.5">{days[activeDay].sub} · {formatTime(selectedEvent.startTime)} – {formatTime(selectedEvent.endTime)}</p>
                     </div>
-                    <button onClick={deleteEvent} className="text-gray-300 hover:text-red-400 transition-colors"><X size={16} /></button>
+                    <button onClick={() => setSelectedEvent(null)} className="text-gray-400 hover:text-gray-600 transition-colors"><X size={16} /></button>
                   </div>
 
                   {/* Tags */}
@@ -342,7 +388,7 @@ export default function SchedulePage() {
                     )}
                   </div>
 
-                  {/* Time editor */}
+                  {/* Time */}
                   <div className="mb-4">
                     <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Time</p>
                     <div className="flex items-center gap-3">
@@ -362,7 +408,7 @@ export default function SchedulePage() {
                     </div>
                   </div>
 
-                  {/* Repeat toggle */}
+                  {/* Repeat */}
                   <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl mb-4">
                     <Repeat size={14} className="text-gray-400" />
                     <div className="flex-1">
@@ -371,15 +417,9 @@ export default function SchedulePage() {
                     </div>
                     <button
                       onClick={toggleRepeat}
-                      className={cn(
-                        "w-9 h-5 rounded-full transition-colors relative",
-                        selectedEvent.repeat ? "bg-brand-600" : "bg-gray-200"
-                      )}
+                      className={cn("w-9 h-5 rounded-full transition-colors relative", selectedEvent.repeat ? "bg-brand-600" : "bg-gray-200")}
                     >
-                      <div className={cn(
-                        "w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all",
-                        selectedEvent.repeat ? "left-4" : "left-0.5"
-                      )} />
+                      <div className={cn("w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all", selectedEvent.repeat ? "left-4" : "left-0.5")} />
                     </button>
                   </div>
 
@@ -395,19 +435,38 @@ export default function SchedulePage() {
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs text-gray-800 bg-gray-50 outline-none focus:border-brand-300 resize-none leading-relaxed placeholder-gray-300"
                     />
                   </div>
+
+                  {/* Delete */}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <button
+                      onClick={deleteEvent}
+                      className="text-xs text-red-400 hover:text-red-600 transition-colors flex items-center gap-1.5"
+                    >
+                      <Trash2 size={12} /> Delete event
+                    </button>
+                  </div>
                 </div>
 
-                {/* AI insight */}
-                {isNow(selectedEvent) && (
-                  <div className="flex items-start gap-3 bg-brand-50 border border-brand-100 rounded-2xl p-4">
-                    <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center flex-shrink-0">
-                      <Sparkles size={13} className="text-brand-100" />
-                    </div>
-                    <p className="text-xs text-brand-800 leading-relaxed">
-                      You&apos;re currently in a <strong>focus block</strong>. Your next event is {events.find(e => e.startTime > selectedEvent.startTime)?.title || "nothing"} — stay focused and make the most of this time.
-                    </p>
+                {/* AI insight — always shows */}
+                <div className="flex items-start gap-3 bg-brand-50 border border-brand-100 rounded-2xl p-4">
+                  <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center flex-shrink-0">
+                    <Sparkles size={13} className="text-brand-100" />
                   </div>
-                )}
+                  <div className="flex-1">
+                    {isNow(selectedEvent) ? (
+                      <p className="text-xs text-brand-800 leading-relaxed">
+                        You&apos;re currently in <strong>{selectedEvent.title}</strong>.
+                        {nextEvent && <> Next up: <strong>{nextEvent.title}</strong> at {formatTime(nextEvent.startTime)}.</>} Stay focused.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-brand-800 leading-relaxed">
+                        <strong>{selectedEvent.title}</strong> is scheduled for {formatTime(selectedEvent.startTime)} – {formatTime(selectedEvent.endTime)}.
+                        {selectedEvent.repeat && " This event repeats daily."}
+                        {selectedEvent.notes && " You have notes saved for this event."}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -486,7 +545,6 @@ export default function SchedulePage() {
                 className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300"
                 autoFocus
               />
-
               <div className="flex gap-2">
                 <div className="flex-1">
                   <p className="text-[10px] text-gray-400 mb-1">Start</p>
@@ -497,7 +555,6 @@ export default function SchedulePage() {
                   <input type="time" value={newEvent.endTime} onChange={e => setNewEvent(p => ({ ...p, endTime: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-brand-300 bg-gray-50" />
                 </div>
               </div>
-
               <div>
                 <p className="text-[10px] text-gray-400 mb-1.5">Type</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -511,7 +568,6 @@ export default function SchedulePage() {
                   ))}
                 </div>
               </div>
-
               <div>
                 <p className="text-[10px] text-gray-400 mb-1.5">Color</p>
                 <div className="flex gap-2">
@@ -523,7 +579,6 @@ export default function SchedulePage() {
                   ))}
                 </div>
               </div>
-
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
                 <Repeat size={13} className="text-gray-400" />
                 <span className="text-xs text-gray-600 flex-1">Repeat daily</span>
