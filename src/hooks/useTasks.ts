@@ -9,18 +9,33 @@ export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loaded, setLoaded] = useState(false)
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      fetchTasks()
-    } else if (status === "unauthenticated") {
-      // fallback to localStorage if not logged in
-      try {
-        const stored = localStorage.getItem("ai-life-os-tasks")
-        setTasks(stored ? JSON.parse(stored) : [])
-      } catch { setTasks([]) }
-      setLoaded(true)
-    }
-  }, [status])
+useEffect(() => {
+  if (status === "authenticated") {
+    fetchTasks()
+  } else if (status === "unauthenticated") {
+    try {
+      const stored = localStorage.getItem("ai-life-os-tasks")
+      if (stored) {
+        const parsed: Task[] = JSON.parse(stored)
+        
+        // Remove completed tasks older than 7 days
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+        const cleaned = parsed.filter(t => {
+          if (!t.done) return true
+          const createdAt = new Date(t.createdAt)
+          return createdAt > sevenDaysAgo
+        })
+        
+        setTasks(cleaned)
+        localStorage.setItem("ai-life-os-tasks", JSON.stringify(cleaned))
+      } else {
+        setTasks(INITIAL_TASKS)
+      }
+    } catch { setTasks(INITIAL_TASKS) }
+    setLoaded(true)
+  }
+}, [status])
 
   async function fetchTasks() {
     try {
