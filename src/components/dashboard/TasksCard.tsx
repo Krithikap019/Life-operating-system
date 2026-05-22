@@ -1,44 +1,29 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { mockTasks } from "@/lib/data"
 import { cn } from "@/lib/utils"
 import { Check, Plus, X, Trash2 } from "lucide-react"
+import { useTasks } from "@/hooks/useTasks"
+import { TAG_OPTIONS, TagColor } from "@/lib/tasks"
 
-const TAG_OPTIONS = [
-  { label: "Dev",      color: "teal"   },
-  { label: "Learning", color: "purple" },
-  { label: "Urgent",   color: "amber"  },
-  { label: "Career",   color: "purple" },
-  { label: "Work",     color: "teal"   },
-  { label: "Personal", color: "coral"  },
-]
-
-const TAG_STYLES: Record<string, string> = {
+const TAG_STYLES: Record<TagColor, string> = {
   purple: "bg-brand-50 text-brand-800",
   teal:   "bg-teal-50 text-teal-800",
   amber:  "bg-amber2-50 text-amber2-800",
   coral:  "bg-coral-50 text-coral-800",
+  gray:   "bg-gray-100 text-gray-500",
 }
 
-const TAG_ACTIVE: Record<string, string> = {
+const TAG_ACTIVE: Record<TagColor, string> = {
   purple: "bg-brand-600 text-white",
   teal:   "bg-teal-600 text-white",
   amber:  "bg-amber-600 text-white",
   coral:  "bg-red-500 text-white",
+  gray:   "bg-gray-500 text-white",
 }
 
-interface SuggestedTask { text: string; tag: string; tagColor: string }
-interface Props { suggestedTasks?: SuggestedTask[] }
-
-export function TasksCard({ suggestedTasks = [] }: Props) {
-  const [tasks, setTasks] = useState(mockTasks)
-  const [addedSuggested, setAddedSuggested] = useState<Set<string>>(new Set())
-
-  function addSuggestedTask(t: SuggestedTask) {
-    setTasks(prev => [...prev, { id: Date.now().toString(), text: t.text, done: false, tag: t.tag, tagColor: t.tagColor }])
-    setAddedSuggested(prev => new Set(Array.from(prev).concat(t.text)))
-  }
+export function TasksCard() {
+  const { tasks, addTask, toggleTask, deleteTask } = useTasks()
   const [adding, setAdding] = useState(false)
   const [newText, setNewText] = useState("")
   const [newTag, setNewTag] = useState(TAG_OPTIONS[0])
@@ -48,45 +33,40 @@ export function TasksCard({ suggestedTasks = [] }: Props) {
     if (adding) inputRef.current?.focus()
   }, [adding])
 
-  function toggleTask(id: string) {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
-  }
-
-  function deleteTask(id: string) {
-    setTasks(prev => prev.filter(t => t.id !== id))
-  }
-
-  function addTask() {
+  function handleAdd() {
     const text = newText.trim()
     if (!text) return
-    setTasks(prev => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        text,
-        done: false,
-        tag: newTag.label,
-        tagColor: newTag.color,
-      },
-    ])
+    addTask({
+      text,
+      done: false,
+      tag: newTag.label,
+      tagColor: newTag.color,
+      priority: "medium",
+      dueDate: new Date().toISOString().split("T")[0],
+    })
     setNewText("")
     setAdding(false)
   }
 
   function handleKey(e: React.KeyboardEvent) {
-    if (e.key === "Enter") addTask()
+    if (e.key === "Enter") handleAdd()
     if (e.key === "Escape") { setAdding(false); setNewText("") }
   }
 
+  // Show only today's tasks (max 5)
+  const today = new Date().toISOString().split("T")[0]
+  const todayTasks = tasks
+    .filter(t => t.dueDate === today || t.dueDate === null || t.dueDate < today)
+    .slice(0, 5)
+
+  const remaining = todayTasks.filter(t => !t.done).length
+
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-3">
-      {/* Header */}
       <div className="flex items-center justify-between mb-2.5">
         <p className="text-xs font-medium text-gray-800 flex items-center gap-1.5">
           <span className="text-brand-600">☑</span> Tasks
-          <span className="text-[10px] text-gray-400 font-normal">
-            {tasks.filter(t => !t.done).length} remaining
-          </span>
+          <span className="text-[10px] text-gray-400 font-normal">{remaining} remaining</span>
         </p>
         <button
           onClick={() => setAdding(true)}
@@ -96,14 +76,13 @@ export function TasksCard({ suggestedTasks = [] }: Props) {
         </button>
       </div>
 
-      {/* Task list */}
       <div className="flex flex-col">
-        {tasks.map((task, i) => (
+        {todayTasks.map((task, i) => (
           <div
             key={task.id}
             className={cn(
               "flex items-center gap-2 py-1.5 group",
-              i < tasks.length - 1 && "border-b border-gray-50"
+              i < todayTasks.length - 1 && "border-b border-gray-50"
             )}
           >
             <button
@@ -136,37 +115,10 @@ export function TasksCard({ suggestedTasks = [] }: Props) {
           </div>
         ))}
 
-        {tasks.length === 0 && (
-          <p className="text-[11px] text-gray-400 text-center py-3">No tasks yet — add one!</p>
+        {todayTasks.length === 0 && (
+          <p className="text-[11px] text-gray-400 text-center py-3">No tasks for today 🎉</p>
         )}
       </div>
-
-      {/* Add task input */}
-
-      {/* AI-suggested tasks from email */}
-      {suggestedTasks.filter(t => !addedSuggested.has(t.text)).length > 0 && (
-        <div className="mt-2.5 border-t border-gray-100 pt-2.5">
-          <p className="text-[9px] text-gray-400 mb-1.5 flex items-center gap-1">
-            <span>✦</span> AI suggested from email
-          </p>
-          <div className="flex flex-col gap-1">
-            {suggestedTasks.filter(t => !addedSuggested.has(t.text)).map((t, i) => (
-              <div key={i} className="flex items-center gap-2 bg-brand-50 rounded-lg px-2 py-1.5">
-                <span className="text-[10px] text-brand-800 flex-1 min-w-0 truncate">{t.text}</span>
-                <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0", TAG_STYLES[t.tagColor] || TAG_STYLES.purple)}>
-                  {t.tag}
-                </span>
-                <button
-                  onClick={() => addSuggestedTask(t)}
-                  className="text-brand-600 hover:text-brand-800 transition-colors flex-shrink-0"
-                >
-                  <Plus size={11} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {adding && (
         <div className="mt-2.5 border-t border-gray-100 pt-2.5">
@@ -180,7 +132,7 @@ export function TasksCard({ suggestedTasks = [] }: Props) {
               className="flex-1 text-[11px] border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none focus:border-brand-300 bg-gray-50 text-gray-800 placeholder-gray-400"
             />
             <button
-              onClick={addTask}
+              onClick={handleAdd}
               disabled={!newText.trim()}
               className="w-6 h-6 rounded-md bg-brand-600 flex items-center justify-center text-white disabled:opacity-40 hover:bg-brand-800 transition-colors flex-shrink-0"
             >
@@ -193,7 +145,6 @@ export function TasksCard({ suggestedTasks = [] }: Props) {
               <X size={11} />
             </button>
           </div>
-          {/* Tag picker */}
           <div className="flex flex-wrap gap-1">
             {TAG_OPTIONS.map(tag => (
               <button
@@ -201,9 +152,7 @@ export function TasksCard({ suggestedTasks = [] }: Props) {
                 onClick={() => setNewTag(tag)}
                 className={cn(
                   "text-[9px] px-2 py-0.5 rounded-full transition-colors",
-                  newTag.label === tag.label
-                    ? TAG_ACTIVE[tag.color]
-                    : TAG_STYLES[tag.color]
+                  newTag.label === tag.label ? TAG_ACTIVE[tag.color] : TAG_STYLES[tag.color]
                 )}
               >
                 {tag.label}
