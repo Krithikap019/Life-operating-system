@@ -64,7 +64,7 @@ export function TasksCard() {
   return (
     <div className="bg-white border border-gray-100 rounded-xl p-3">
       <div className="flex items-center justify-between mb-2.5">
-        <p className="text-xs font-medium text-gray-800 flex items-center gap-1.5">
+        <p className="text-base font-medium text-gray-800 flex items-center gap-1.5">
           <span className="text-brand-600">☑</span> Tasks
           <span className="text-[10px] text-gray-400 font-normal">{remaining} remaining</span>
         </p>
