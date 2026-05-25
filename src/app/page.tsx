@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Sidebar }        from "@/components/dashboard/Sidebar"
 import { Topbar }         from "@/components/dashboard/Topbar"
 import { MetricsRow }     from "@/components/dashboard/MetricsRow"
@@ -10,10 +10,24 @@ import { TasksCard }      from "@/components/dashboard/TasksCard"
 import { CalendarCard }   from "@/components/dashboard/CalendarCard"
 import { ScheduleColumn } from "@/components/dashboard/ScheduleColumn"
 import { ChatBar }        from "@/components/dashboard/ChatBar"
+import { WorkoutCard }    from "@/components/dashboard/WorkoutCard"
+import { MealCard }       from "@/components/dashboard/MealCard"
 
 export default function Home() {
   const [emailDigest, setEmailDigest] = useState("")
   const [suggestedTasks, setSuggestedTasks] = useState<{ text: string; tag: string; tagColor: string }[]>([])
+
+  const rightCol = useMemo(() => (
+    <div className="flex flex-col gap-3">
+      <TasksCard />
+      <div className="grid grid-cols-2 gap-3">
+        <WorkoutCard />
+        <MealCard />
+      </div>
+    </div>
+  ), [])
+  
+  console.log({ TasksCard, WorkoutCard, MealCard })
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F4F0]">
@@ -32,15 +46,19 @@ export default function Home() {
 
             <AIInsight digest={emailDigest} />
 
-            <div className="grid grid-cols-2 gap-3">
-              <EmailDigest
-                onTasksSuggested={setSuggestedTasks}
-                onDigestReady={setEmailDigest}
-              />
-              <TasksCard />
-            </div>
+            <div className="grid grid-cols-2 gap-3 items-start">
+              {/* Left col — email + calendar */}
+              <div className="flex flex-col gap-3">
+                <EmailDigest
+                  onTasksSuggested={setSuggestedTasks}
+                  onDigestReady={setEmailDigest}
+                />
+                <CalendarCard />
+              </div>
 
-            <CalendarCard />
+              {/* Right col — memoized so it never re-renders on emailDigest change */}
+              {rightCol}
+            </div>
           </main>
 
           <ScheduleColumn />

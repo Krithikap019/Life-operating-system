@@ -56,19 +56,24 @@ function handleAdd() {
   }
 
   // Show only today's tasks (max 5)
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
-  const todayTasks = tasks
-  .filter(t => t.dueDate !== null && t.dueDate <= today)
+const now = new Date()
+const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
+
+const todayTasks = tasks
+  .filter(t => {
+    if (t.dueDate === null) return false
+    if (t.dueDate === today) return true           // today → always show
+    if (t.dueDate < today && !t.done) return true  // overdue + incomplete → show
+    return false                                    // overdue + done → hide
+  })
   .sort((a, b) => {
     if (a.done === b.done) return 0
-    return a.done ? 1 : -1  // completed tasks go to bottom
+    return a.done ? 1 : -1
   })
-
   const remaining = todayTasks.filter(t => !t.done).length
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-3">
+    <div className="bg-white border border-gray-100 rounded-xl p-3 min-h-[260px]">
       <div className="flex items-center justify-between mb-2.5">
         <p className="text-base font-medium text-gray-800 flex items-center gap-1.5">
           <span className="text-brand-600">☑</span> Tasks
@@ -106,6 +111,10 @@ function handleAdd() {
             )}>
               {task.text}
             </span>
+            {/* Add this right after the text span */}
+{!task.done && task.dueDate < today && (
+  <span className="text-[9px] text-red-400 flex-shrink-0">overdue</span>
+)}
             <span className={cn(
               "text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0",
               TAG_STYLES[task.tagColor] || TAG_STYLES.purple

@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutDashboard, Target, CheckSquare, Calendar, Mail, BarChart2, BookOpen, Smile, Settings, Clock } from "lucide-react"
+import { LayoutDashboard, Target, CheckSquare, Calendar, Mail, BarChart2, BookOpen, Smile, Settings, Clock, Utensils, Dumbbell, DollarSign } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
@@ -10,8 +10,8 @@ const NAV_WORKSPACE = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/",        page: "dashboard" },
   { icon: CheckSquare,     label: "Tasks",      href: "/tasks",   page: "tasks" },
   { icon: Clock, label: "Schedule", href: "/schedule", page: "schedule" },
-  { icon: Target,          label: "Goals",      href: "/goals",   page: "goals" },
-  { icon: Calendar,        label: "Calendar",   href: "/calendar",page: "calendar" },
+  { icon: Utensils,          label: "Meal",      href: "/meal",   page: "meal" },
+  { icon: Dumbbell,        label: "Workout",   href: "/workout",page: "workout" },
 ]
 
 const NAV_AGENTS = [
@@ -19,6 +19,9 @@ const NAV_AGENTS = [
   { icon: BarChart2, label: "Habits",    href: "/" },
   { icon: BookOpen,  label: "Knowledge", href: "/" },
   { icon: Smile,     label: "Reflection",href: "/" },
+  { icon: Target,  label: "Goals", href: "/" },
+  { icon: DollarSign,    label: "Finance",href: "/" },
+
 ]
 
 interface Props { activePage?: string }
@@ -90,16 +93,10 @@ export function Sidebar({ activePage = "dashboard" }: Props) {
         Settings
       </Link>
 
-      {/* Focus Mode Card */}
-      <div className="mx-3 mt-auto mb-3 rounded-xl p-3" style={{ background: "#2C2850" }}>
-        <p className="text-[10px] mb-1" style={{ color: "#9B99C4" }}>AI Focus Mode</p>
-        <p className="text-sm font-medium text-white">Deep Work</p>
-        <p className="text-[10px] mt-0.5" style={{ color: "#7F77DD" }}>Ends in 45:00</p>
-      </div>
 
       {/* User */}
       {/* User / Auth */}
-<div className="px-4 pt-2 flex items-center gap-2" style={{ borderTop: "0.5px solid #2C2850" }}>
+<div className="px-4 pt-2 flex mt-auto mb-3 items-center gap-2" style={{ borderTop: "0.5px solid #2C2850" }}>
   {session ? (
     <>
       <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-medium text-white flex-shrink-0"

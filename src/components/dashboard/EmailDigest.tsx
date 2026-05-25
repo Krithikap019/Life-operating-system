@@ -71,7 +71,7 @@ export function EmailDigest({ onTasksSuggested, onDigestReady }: Props) {
 
   if (status === "loading" || (loading && emails.length === 0)) {
     return (
-      <div className="bg-white border border-gray-100 rounded-xl p-3">
+      <div className="bg-white border border-gray-100 rounded-xl p-3 min-h-[300px]">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-medium text-gray-800 flex items-center gap-1.5">
             <Mail size={12} className="text-brand-600" /> Email digest

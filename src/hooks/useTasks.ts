@@ -20,7 +20,7 @@ useEffect(() => {
         
         // Remove completed tasks older than 7 days
         const sevenDaysAgo = new Date()
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 3)
         const cleaned = parsed.filter(t => {
           if (!t.done) return true
           const createdAt = new Date(t.createdAt)

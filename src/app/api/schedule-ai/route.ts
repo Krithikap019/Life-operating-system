@@ -6,32 +6,38 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export async function POST(req: NextRequest) {
   const { message, event } = await req.json()
 
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
-
   const res = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 200,
+    max_tokens: 300,
     messages: [{
       role: "user",
-      content: `You are an event editor. Current event: "${event.title}" from ${event.startTime} to ${event.endTime}.
-      
+      content: `You are a schedule assistant. ${event ? `Current selected event: "${event.title}" from ${event.startTime} to ${event.endTime}.` : "No event is currently selected."}
+
 User request: "${message}"
 
-Parse the request and return ONLY valid JSON, no markdown:
+Determine if the user wants to:
+1. UPDATE the selected event (e.g. "move to 3pm", "rename to X", "make it 2 hours")
+2. ADD a new event (e.g. "add meeting at 4pm", "schedule gym at 7am", "new event called lunch at 1pm")
+
+Return ONLY valid JSON, no markdown:
 {
-  "startTime": "HH:MM or null if unchanged",
-  "endTime": "HH:MM or null if unchanged", 
-  "title": "new title or null if unchanged",
-  "notes": "new notes or null if unchanged",
+  "action": "update" or "add",
+  "startTime": "HH:MM or null",
+  "endTime": "HH:MM or null",
+  "title": "title string or null",
+  "notes": "notes string or null",
+  "color": "purple or teal or coral or amber or gray",
+  "type": "focus or meeting or habit or other or free",
+  "repeat": false,
   "response": "short friendly confirmation message"
 }
 
 Rules:
-- Times must be in 24hr HH:MM format
-- "3pm" = "15:00", "9am" = "09:00", "10:30am" = "10:30"
-- Only change what the user asked to change
-- If duration mentioned like "make it 2 hours", calculate endTime from startTime`
+- Times in 24hr HH:MM format. "3pm"="15:00", "9am"="09:00"
+- For UPDATE: only include fields that changed, others null
+- For ADD: always include title and startTime, estimate endTime (+1hr if not specified)
+- Pick color/type based on context: meetings=teal/meeting, gym/habits=purple/habit, focus=purple/focus
+- If no event selected and user says update, set action to "add" instead`
     }]
   })
 
@@ -40,6 +46,6 @@ Rules:
     const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim())
     return NextResponse.json(parsed)
   } catch {
-    return NextResponse.json({ response: "Sorry, I couldn't understand that. Try: 'move to 3pm' or 'rename to Team sync'" })
+    return NextResponse.json({ response: "Sorry, I couldn't understand that. Try: 'add meeting at 4pm' or 'move to 3pm'" })
   }
 }
