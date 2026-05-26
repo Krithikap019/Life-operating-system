@@ -168,7 +168,7 @@ export default function AddWorkoutModal({ onClose, onAdd, defaultDate }: Props) 
 
                     {/* 2. Type */}
           <div>
-            <Label>Workout Type</Label>
+            <Label step={2}>Workout Type</Label>
             <div className="flex gap-2 flex-wrap mt-1.5">
               {CATEGORIES.map(c => (
                 <button
