@@ -258,7 +258,7 @@ export default function MealPrepPage() {
       })
       const data = await res.json()
       const emoji = data.meal?.emoji || data.response?.trim()
-      if (emoji && /\p{Emoji}/u.test(emoji)) setNewMeal(p => ({ ...p, emoji }))
+      if (emoji && emoji.trim().length > 0) setNewMeal(p => ({ ...p, emoji }))
     } catch { /* silent */ } finally {
       setEmojiLoading(false)
     }
