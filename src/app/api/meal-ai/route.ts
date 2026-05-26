@@ -85,4 +85,46 @@ Day reference (human date → key): ${dayList}
 
 Actions:
 - "add": add a new meal. Parse which day from the message. If unclear, use "${day}".
-- "update": update a meal. Use "${day}" as targetDay. IMPORTANT: if the user explicitly mentions a meal type (breakfast/lunch/snack/dinner) in their message
+- "update": update a meal. Use "${day}" as targetDay. IMPORTANT: if the user explicitly mentions a meal type (breakfast/lunch/snack/dinner) in their message, set the "type" field to that meal type — even if a different meal is currently selected.
+
+For kcal and prepMin: use the exact values if the user provides them in the message. If not provided, estimate realistic values based on the meal name — never use 0 or null, never ask the user to update them.
+Respond ONLY with valid JSON (no markdown):
+{
+  "action": "add" or "update",
+  "targetDay": "YYYY-M-D key",
+  "meal": {
+    "name": "meal name",
+    "emoji": "one food emoji",
+    "kcal": number,
+    "prepMin": number,
+    "time": "e.g. 7:30 AM",
+    "type": "breakfast" or "lunch" or "snack" or "dinner",
+    "notes": ""
+  },
+  "response": "short confirmation under 20 words"
+}`
+
+    const completion = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: [{ role: "user", content: message }],
+    })
+
+    const text = completion.content[0]?.type === "text" ? completion.content[0].text : ""
+    const parsed = JSON.parse(text.replace(/```json|```/g, "").trim())
+
+    if (parsed.meal && !parsed.meal.time && parsed.meal.type) {
+      parsed.meal.time = MEAL_TIMES[parsed.meal.type] ?? "12:00 PM"
+    }
+    if (!parsed.targetDay) parsed.targetDay = day
+
+    return NextResponse.json(parsed)
+  } catch (err) {
+    console.error("meal-ai error:", err)
+    return NextResponse.json(
+      { action: "none", response: "Something went wrong. Try again." },
+      { status: 500 }
+    )
+  }
+}
