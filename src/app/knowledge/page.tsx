@@ -7,7 +7,7 @@ export default function ComingSoonPage() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F4F0]">
       
-      <Sidebar />
+      <Sidebar activePage="knowledge" />
 
       <main className="flex-1 flex items-center justify-center px-6">
         <div className="w-full max-w-md bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">

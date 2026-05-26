@@ -15,12 +15,11 @@ const NAV_WORKSPACE = [
 ]
 
 const NAV_AGENTS = [
-  { icon: Mail,      label: "Email",     href: "/inprogress" },
-  { icon: BarChart2, label: "Habits",    href: "/inprogress" },
-  { icon: BookOpen,  label: "Knowledge", href: "/inprogress" },
-  { icon: Smile,     label: "Reflection",href: "/inprogress" },
-  { icon: Target,  label: "Goals", href: "/inprogress" },
-  { icon: DollarSign,    label: "Finance",href: "/inprogress" },
+  { icon: Mail,      label: "Email",     href: "/Email" },
+  { icon: BarChart2, label: "Habits",    href: "/habits" },
+  { icon: BookOpen,  label: "Knowledge", href: "/knowledge" },
+  { icon: Smile,     label: "Reflection",href: "/Reflection" },
+  { icon: Target,  label: "Goals", href: "/Goals" },
 
 ]
 
