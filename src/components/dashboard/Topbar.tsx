@@ -1,11 +1,17 @@
 import { Bell, Search } from "lucide-react"
+import { useSession } from "next-auth/react"
+
+const { data: session } = useSession()
+const firstName = session?.user?.name?.split(" ")[0] ?? ""
+
+// In JSX:
 
 export function Topbar() {
   const today = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
 
   return (
     <header className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between flex-shrink-0">
-      <p className="text-sm font-medium text-gray-800">Good morning 👋</p>
+      <p className="text-sm font-medium text-gray-800">Good morning {firstName ? `, ${firstName}` : ""}  👋</p>
       <div className="flex items-center gap-2">
         <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full">
           {today}
