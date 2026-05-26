@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk"
+import { NextRequest } from "next/server"
 
 const client = new Anthropic()
 
