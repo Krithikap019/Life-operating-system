@@ -3,12 +3,6 @@
 import { useSession } from "next-auth/react"
 import { Bell, Search } from "lucide-react"
 
-
-const { data: session } = useSession()
-const firstName = session?.user?.name?.split(" ")[0] ?? ""
-
-// In JSX:
-
 export function Topbar() {
   const { data: session } = useSession()
   const firstName = session?.user?.name?.split(" ")[0] ?? ""
