@@ -112,9 +112,10 @@ const todayTasks = tasks
               {task.text}
             </span>
             {/* Add this right after the text span */}
-{!task.done && task.dueDate < today && (
+{!task.done && task.dueDate !== null && task.dueDate < today && (
   <span className="text-[9px] text-red-400 flex-shrink-0">overdue</span>
 )}
+
             <span className={cn(
               "text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0",
               TAG_STYLES[task.tagColor] || TAG_STYLES.purple
