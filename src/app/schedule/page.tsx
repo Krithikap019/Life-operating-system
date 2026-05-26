@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 interface ScheduleEvent {
   id: string
   title: string
+  date: string
   startTime: string
   endTime: string
   color: "purple" | "teal" | "coral" | "amber" | "gray"
@@ -33,13 +34,13 @@ const TYPE_BADGE: Record<string, string> = {
 }
 
 const DEFAULT_EVENTS: ScheduleEvent[] = [
-  { id: "1", title: "Morning routine",   startTime: "08:00", endTime: "09:00", color: "teal",   repeat: true,  notes: "",                                                              type: "habit"   },
-  { id: "2", title: "Deep work",         startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, notes: "Focus block — no meetings, no distractions.",                   type: "focus"   },
-  { id: "3", title: "Team standup",      startTime: "10:00", endTime: "10:30", color: "teal",   repeat: false, notes: "",                                                              type: "meeting" },
-  { id: "4", title: "Lunch break",       startTime: "12:00", endTime: "13:00", color: "gray",   repeat: true,  notes: "",                                                              type: "free"    },
-  { id: "5", title: "Interview prep",    startTime: "14:00", endTime: "15:30", color: "coral",  repeat: false, notes: "Prep for OpenAI role — review system design and ML questions.", type: "other"   },
-  { id: "6", title: "Review PR + reply", startTime: "16:00", endTime: "17:00", color: "amber",  repeat: false, notes: "Review PR #42 and reply to Priya about deadline.",               type: "other"   },
-  { id: "7", title: "Reading habit",     startTime: "20:00", endTime: "20:30", color: "purple", repeat: false, notes: "AI suggested based on your reading goal.",                      type: "habit"   },
+  { id: "1", title: "Morning routine", date:"",  startTime: "08:00", endTime: "09:00", color: "teal",   repeat: true,  notes: "",                                                              type: "habit"   },
+  { id: "2", title: "Deep work",   date:"",      startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, notes: "Focus block — no meetings, no distractions.",                   type: "focus"   },
+  { id: "3", title: "Team standup",   date:"",   startTime: "10:00", endTime: "10:30", color: "teal",   repeat: false, notes: "",                                                              type: "meeting" },
+  { id: "4", title: "Lunch break",   date:"",    startTime: "12:00", endTime: "13:00", color: "gray",   repeat: true,  notes: "",                                                              type: "free"    },
+  { id: "5", title: "Interview prep", date:"",   startTime: "14:00", endTime: "15:30", color: "coral",  repeat: false, notes: "Prep for OpenAI role — review system design and ML questions.", type: "other"   },
+  { id: "6", title: "Review PR + reply", date:"", startTime: "16:00", endTime: "17:00", color: "amber",  repeat: false, notes: "Review PR #42 and reply to Priya about deadline.",               type: "other"   },
+  { id: "7", title: "Reading habit",  date:"",   startTime: "20:00", endTime: "20:30", color: "purple", repeat: false, notes: "AI suggested based on your reading goal.",                      type: "habit"   },
 ]
 
 function formatTime(t: string) {
@@ -166,9 +167,10 @@ export default function SchedulePage() {
   const [editingTitle, setEditingTitle] = useState(false)
   const [editingTitleText, setEditingTitleText] = useState("")
   const [showAddModal, setShowAddModal] = useState(false)
-  const [newEvent, setNewEvent] = useState<Partial<ScheduleEvent>>({
-    title: "", startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, type: "other", notes: ""
-  })
+const [newEvent, setNewEvent] = useState<Partial<ScheduleEvent>>({
+  title: "", startTime: "09:00", endTime: "10:00", color: "purple",
+  repeat: false, type: "other", notes: ""
+})
   const [aiInput, setAiInput] = useState("")
   const [aiLoading, setAiLoading] = useState(false)
   const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([])
@@ -206,8 +208,14 @@ export default function SchedulePage() {
             else seeded[date] = [...seeded[date], ev].sort((a, b) => (a?.startTime || "").localeCompare(b?.startTime || ""))
           })
         } else {
-          const date = days[0].date
+          const date = ev.date
+            if (!date) return
+
+          // only allow visible 3 days
+          if (!seeded[date]) return
+
           if (isExcepted(loadedExceptions, ev.id, date)) return
+
           const idx = seeded[date].findIndex(e => e.id === ev.id)
           if (idx >= 0) seeded[date][idx] = ev
           else seeded[date] = [...seeded[date], ev].sort((a, b) => (a?.startTime || "").localeCompare(b?.startTime || ""))
@@ -330,84 +338,102 @@ export default function SchedulePage() {
     setSelectedEvent(null)
   }
 
-  function addEvent() {
-    if (!newEvent.title?.trim()) return
-    const ev: ScheduleEvent = {
-      id: Date.now().toString(),
-      title: newEvent.title!,
-      startTime: newEvent.startTime || "09:00",
-      endTime: newEvent.endTime || "10:00",
-      color: newEvent.color as ScheduleEvent["color"] || "purple",
-      repeat: newEvent.repeat || false,
-      notes: newEvent.notes || "",
-      type: newEvent.type as ScheduleEvent["type"] || "other",
-    }
-    setScheduleData(prev => {
-      const next = { ...prev }
-      const targetDates = ev.repeat ? days.map(d => d.date) : [currentDate]
-      targetDates.forEach(date => {
-        next[date] = [...(next[date] || []), { ...ev }].sort((a, b) => a.startTime.localeCompare(b.startTime))
-      })
-      if (!isAuth) saveToLocalStorage(next)
-      return next
+function addEvent() {
+  if (!newEvent.title?.trim()) return
+  const targetDate = (newEvent as any).date || currentDate
+  const targetDayIndex = days.findIndex(d => d.date === targetDate)
+
+  const ev: ScheduleEvent = {
+    id: Date.now().toString(),
+    title: newEvent.title!,
+    date: targetDate,
+    startTime: newEvent.startTime || "09:00",
+    endTime: newEvent.endTime || "10:00",
+    color: newEvent.color as ScheduleEvent["color"] || "purple",
+    repeat: newEvent.repeat || false,
+    notes: newEvent.notes || "",
+    type: newEvent.type as ScheduleEvent["type"] || "other",
+  }
+  setScheduleData(prev => {
+    const next = { ...prev }
+    const targetDates = ev.repeat ? days.map(d => d.date) : [targetDate]
+    targetDates.forEach(date => {
+      next[date] = [...(next[date] || []), { ...ev }].sort((a, b) => a.startTime.localeCompare(b.startTime))
     })
-    saveEventToDB(ev)
-    setShowAddModal(false)
-    setNewEvent({ title: "", startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, type: "other", notes: "" })
-  }
+    if (!isAuth) saveToLocalStorage(next)
+    return next
+  })
+  saveEventToDB(ev)
+  // Auto-switch to the day the event was added to
+  if (targetDayIndex >= 0) setActiveDay(targetDayIndex)
+  setShowAddModal(false)
+  setNewEvent({ title: "", startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, type: "other", notes: "" })
+}
 
-  async function handleAiEdit() {
-    if (!aiInput.trim()) return
-    const userText = aiInput
-    setAiLoading(true)
-    setChatHistory(prev => [...prev, { role: "user", text: userText }])
-    setAiInput("")
-    try {
-      const res = await fetch("/api/schedule-ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText, event: selectedEvent }),
-      })
-      const data = await res.json()
+async function handleAiEdit() {
+  if (!aiInput.trim()) return
+  const userText = aiInput
+  setAiLoading(true)
+  setChatHistory(prev => [...prev, { role: "user", text: userText }])
+  setAiInput("")
+  try {
+    const res = await fetch("/api/schedule-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: userText,
+        event: selectedEvent,
+        currentDate,
+        availableDates: days.map(d => d.date),
+      }),
+    })
+    const data = await res.json()
 
-      if (data.action === "add") {
-        const ev: ScheduleEvent = {
-          id: Date.now().toString(),
-          title: data.title || "New event",
-          startTime: data.startTime || "09:00",
-          endTime: data.endTime || "10:00",
-          color: data.color || "purple",
-          repeat: data.repeat || false,
-          notes: data.notes || "",
-          type: data.type || "other",
-        }
-        setScheduleData(prev => {
-          const next = { ...prev }
-          next[currentDate] = [...(next[currentDate] || []), ev].sort((a, b) => a.startTime.localeCompare(b.startTime))
-          if (!isAuth) saveToLocalStorage(next)
-          return next
-        })
-        saveEventToDB(ev)
-        selectEvent(ev)
-      } else if (data.action === "update" && selectedEvent) {
-        const updated: ScheduleEvent = {
-          ...selectedEvent,
-          ...(data.startTime && { startTime: data.startTime }),
-          ...(data.endTime && { endTime: data.endTime }),
-          ...(data.title && { title: data.title }),
-          ...(data.notes && { notes: data.notes }),
-        }
-        updateEvent(updated, selectedEvent.repeat)
-        if (data.notes) setEditingNotes(data.notes)
+    if (data.action === "unavailable") {
+      // just show the response message, don't add anything
+    } else if (data.action === "add") {
+      const targetDate = data.date || currentDate
+      const targetDayIndex = days.findIndex(d => d.date === targetDate)
+      const ev: ScheduleEvent = {
+        id: Date.now().toString(),
+        title: data.title || "New event",
+        date: targetDate,
+        startTime: data.startTime || "09:00",
+        endTime: data.endTime || "10:00",
+        color: data.color || "purple",
+        repeat: data.repeat || false,
+        notes: data.notes || "",
+        type: data.type || "other",
       }
-
-      setChatHistory(prev => [...prev, { role: "ai", text: data.response || "Done!" }])
-    } catch {
-      setChatHistory(prev => [...prev, { role: "ai", text: "Something went wrong. Try again." }])
-    } finally {
-      setAiLoading(false)
+      setScheduleData(prev => {
+        const next = { ...prev }
+        next[targetDate] = [...(next[targetDate] || []), ev].sort((a, b) => a.startTime.localeCompare(b.startTime))
+        if (!isAuth) saveToLocalStorage(next)
+        return next
+      })
+      saveEventToDB(ev)
+      selectEvent(ev)
+      // Auto-switch to the day the event was added to
+      if (targetDayIndex >= 0) setActiveDay(targetDayIndex)
+    } else if (data.action === "update" && selectedEvent) {
+      const updated: ScheduleEvent = {
+        ...selectedEvent,
+        ...(data.startTime && { startTime: data.startTime }),
+        ...(data.endTime && { endTime: data.endTime }),
+        ...(data.title && { title: data.title }),
+        ...(data.notes && { notes: data.notes }),
+      }
+      updateEvent(updated, selectedEvent.repeat)
+      if (data.notes) setEditingNotes(data.notes)
     }
+
+    setChatHistory(prev => [...prev, { role: "ai", text: data.response || "Done!" }])
+  } catch {
+    setChatHistory(prev => [...prev, { role: "ai", text: "Something went wrong. Try again." }])
+  } finally {
+    setAiLoading(false)
   }
+}
 
   const nextEvent = selectedEvent ? events.find(e => e.startTime > selectedEvent.endTime) : null
 
@@ -420,10 +446,10 @@ export default function SchedulePage() {
         <div className="bg-white border-b border-gray-100 px-5 flex flex-col flex-shrink-0">
           <div className="flex items-center justify-between py-3">
             <p className="text-base font-medium text-gray-800">Schedule</p>
-            <button onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-1.5 bg-brand-600 text-white text-sm px-4 py-2 rounded-full hover:bg-brand-800 transition-colors">
-              <Plus size={12} /> Add event
-            </button>
+          <button onClick={() => { setShowAddModal(true); setNewEvent(p => ({ ...p, date: currentDate })) }}
+            className="flex items-center gap-1.5 bg-brand-600 text-white text-sm px-4 py-2 rounded-full hover:bg-brand-800 transition-colors">
+            <Plus size={12} /> Add event
+          </button>
           </div>
         </div>
 
@@ -724,6 +750,21 @@ export default function SchedulePage() {
             <div className="flex flex-col gap-3">
               <input placeholder="Event title" value={newEvent.title} onChange={e => setNewEvent(p => ({ ...p, title: e.target.value }))}
                 className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" autoFocus />
+                <div>
+  <p className="text-[10px] text-gray-400 mb-1.5">Day</p>
+  <div className="flex gap-2">
+    {days.map((day, i) => (
+      <button key={day.date} onClick={() => setNewEvent(p => ({ ...p, date: day.date }))}
+        className={cn("flex-1 py-2 rounded-xl border text-center transition-colors",
+          (newEvent.date === day.date || (!newEvent.date && i === activeDay))
+            ? "bg-brand-600 text-white border-brand-600"
+            : "border-gray-200 text-gray-500 hover:border-brand-200")}>
+        <p className="text-[10px] font-medium">{day.label}</p>
+        <p className="text-[9px] opacity-70">{day.sub}</p>
+      </button>
+    ))}
+  </div>
+</div>
               <div className="flex gap-2">
                 <div className="flex-1">
                   <p className="text-[10px] text-gray-400 mb-1">Start</p>

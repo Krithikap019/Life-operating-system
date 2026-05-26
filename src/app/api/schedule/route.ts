@@ -29,6 +29,7 @@ export async function GET() {
     events: events.map(e => ({
       id: e.id,
       title: e.title,
+      date: e.date,
       startTime: e.start_time,
       endTime: e.end_time,
       color: e.color,
@@ -47,10 +48,11 @@ export async function POST(req: NextRequest) {
   const { event } = await req.json()
 
   await sql`
-    INSERT INTO schedule_events (id, user_id, title, start_time, end_time, color, repeat, notes, type)
-    VALUES (${event.id}, ${userId}, ${event.title}, ${event.startTime}, ${event.endTime}, ${event.color}, ${event.repeat}, ${event.notes}, ${event.type})
+    INSERT INTO schedule_events (id, user_id, title, date, start_time, end_time, color, repeat, notes, type)
+    VALUES (${event.id}, ${userId}, ${event.title}, ${event.date}, ${event.startTime}, ${event.endTime}, ${event.color}, ${event.repeat}, ${event.notes}, ${event.type})
     ON CONFLICT (id) DO UPDATE SET
       title = ${event.title},
+      date = ${event.date},
       start_time = ${event.startTime},
       end_time = ${event.endTime},
       color = ${event.color},

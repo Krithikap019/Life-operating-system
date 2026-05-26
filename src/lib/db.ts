@@ -30,6 +30,7 @@ export async function initDB() {
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id),
       title TEXT NOT NULL,
+      date DATE NOT NULL,
       start_time TEXT NOT NULL,
       end_time TEXT NOT NULL,
       color TEXT DEFAULT 'purple',
@@ -81,6 +82,10 @@ await sql`
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id, day_key)
   )
+`
+await sql`
+  ALTER TABLE schedule_events 
+  ADD COLUMN IF NOT EXISTS date TEXT
 `
 }
 
