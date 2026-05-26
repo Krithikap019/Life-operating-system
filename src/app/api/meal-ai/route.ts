@@ -51,7 +51,7 @@ function buildDayMap() {
   return map
 }
 
-export async function POST(req) {
+export async function POST(req: NextRequest){
   try {
     const { message, meal, day, emojiOnly } = await req.json()
 
