@@ -10,7 +10,7 @@ const MEAL_TIMES = {
 }
 
 // Same key format as frontend: YYYY-M-D (0-indexed month)
-function dayKey(date) {
+function dayKey(date: Date) {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 }
 
