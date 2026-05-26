@@ -33,15 +33,20 @@ const TYPE_BADGE: Record<string, string> = {
   free:    "bg-gray-100 text-gray-400",
 }
 
-const DEFAULT_EVENTS: ScheduleEvent[] = [
-  { id: "1", title: "Morning routine", date:"",  startTime: "08:00", endTime: "09:00", color: "teal",   repeat: true,  notes: "",                                                              type: "habit"   },
-  { id: "2", title: "Deep work",   date:"",      startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, notes: "Focus block — no meetings, no distractions.",                   type: "focus"   },
-  { id: "3", title: "Team standup",   date:"",   startTime: "10:00", endTime: "10:30", color: "teal",   repeat: false, notes: "",                                                              type: "meeting" },
-  { id: "4", title: "Lunch break",   date:"",    startTime: "12:00", endTime: "13:00", color: "gray",   repeat: true,  notes: "",                                                              type: "free"    },
-  { id: "5", title: "Interview prep", date:"",   startTime: "14:00", endTime: "15:30", color: "coral",  repeat: false, notes: "Prep for OpenAI role — review system design and ML questions.", type: "other"   },
-  { id: "6", title: "Review PR + reply", date:"", startTime: "16:00", endTime: "17:00", color: "amber",  repeat: false, notes: "Review PR #42 and reply to Priya about deadline.",               type: "other"   },
-  { id: "7", title: "Reading habit",  date:"",   startTime: "20:00", endTime: "20:30", color: "purple", repeat: false, notes: "AI suggested based on your reading goal.",                      type: "habit"   },
-]
+function getDefaultEvents(): ScheduleEvent[] {
+  const now = new Date()
+  const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
+  return [
+    { id: "1", title: "Morning routine",   date: today, startTime: "08:00", endTime: "09:00", color: "teal",   repeat: true,  notes: "", type: "habit"   },
+    { id: "2", title: "Deep work",         date: today, startTime: "09:00", endTime: "10:00", color: "purple", repeat: false, notes: "Focus block — no meetings, no distractions.", type: "focus" },
+    { id: "3", title: "Team standup",      date: today, startTime: "10:00", endTime: "10:30", color: "teal",   repeat: false, notes: "", type: "meeting" },
+    { id: "4", title: "Lunch break",       date: today, startTime: "12:00", endTime: "13:00", color: "gray",   repeat: true,  notes: "", type: "free"    },
+    { id: "5", title: "Interview prep",    date: today, startTime: "14:00", endTime: "15:30", color: "coral",  repeat: false, notes: "Prep for OpenAI role — review system design and ML questions.", type: "other" },
+    { id: "6", title: "Review PR + reply", date: today, startTime: "16:00", endTime: "17:00", color: "amber",  repeat: false, notes: "Review PR #42 and reply to Priya about deadline.", type: "other" },
+    { id: "7", title: "Reading habit",     date: today, startTime: "20:00", endTime: "20:30", color: "purple", repeat: false, notes: "AI suggested based on your reading goal.", type: "habit" },
+  ]
+}
+const defaultEvents = getDefaultEvents()
 
 function formatTime(t: string) {
   const [h, m] = t.split(":").map(Number)
@@ -189,8 +194,8 @@ const [newEvent, setNewEvent] = useState<Partial<ScheduleEvent>>({
             seeded[date] = []
           } else {
             seeded[date] = i === 0
-              ? DEFAULT_EVENTS.map(e => ({ ...e }))
-              : DEFAULT_EVENTS.filter(e => e.repeat).map(e => ({ ...e }))
+              ? defaultEvents.map(e => ({ ...e }))
+              : defaultEvents.filter(e => e.repeat).map(e => ({ ...e }))
           }
         } else {
           seeded[date] = []
