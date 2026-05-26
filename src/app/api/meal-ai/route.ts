@@ -15,7 +15,7 @@ function dayKey(date: Date) {
 }
 
 function buildDayMap() {
-  const map = {}
+  const map: Record<string, string> = {}
   const dayNames = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"]
   const shortNames = ["sun","mon","tue","wed","thu","fri","sat"]
   // Use actual month names for display (1-indexed for humans)
