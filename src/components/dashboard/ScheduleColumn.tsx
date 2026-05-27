@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 interface ScheduleEvent {
   id: string
   title: string
+  date: string  // ← add this
   startTime: string
   endTime: string
   color: "purple" | "teal" | "coral" | "amber" | "gray"
@@ -37,33 +38,34 @@ export function ScheduleColumn() {
     const now = new Date()
     const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`
 
-    async function load() {
-      try {
-        const res = await fetch("/api/schedule")
-        if (res.ok) {
-          const data = await res.json()
-          const exRes = await fetch("/api/schedule-exceptions")
-          const exData = exRes.ok ? await exRes.json() : { exceptions: {} }
-          const exceptions: Record<string, string[]> = exData.exceptions || {}
+async function load() {
+  try {
+    const res = await fetch("/api/schedule")
+    if (res.ok) {
+      const data = await res.json()
+      const exRes = await fetch("/api/schedule-exceptions")
+      const exData = exRes.ok ? await exRes.json() : { exceptions: {} }
+      const exceptions: Record<string, string[]> = exData.exceptions || {}
 
-          const todayEvents = (data.events || []).filter((ev: ScheduleEvent) => {
-            if (exceptions[ev.id]?.includes(today)) return false
-            return ev.repeat || true
-          })
-          setEvents(todayEvents.sort((a: ScheduleEvent, b: ScheduleEvent) => a.startTime.localeCompare(b.startTime)))
-        } else {
-          const stored = localStorage.getItem("ai-life-os-schedule")
-          const parsed = stored ? JSON.parse(stored) : {}
-          const todayEvents: ScheduleEvent[] = parsed[today] || []
-          setEvents(todayEvents.sort((a, b) => a.startTime.localeCompare(b.startTime)))
-        }
-      } catch {
-        const stored = localStorage.getItem("ai-life-os-schedule")
-        const parsed = stored ? JSON.parse(stored) : {}
-        const todayEvents: ScheduleEvent[] = parsed[today] || []
-        setEvents(todayEvents.sort((a, b) => a.startTime.localeCompare(b.startTime)))
-      }
+      const todayEvents = (data.events || []).filter((ev: any) => {
+        if (exceptions[ev.id]?.includes(today)) return false
+        if (ev.repeat) return true
+        return ev.date === today
+      })
+      setEvents(todayEvents.sort((a: ScheduleEvent, b: ScheduleEvent) => a.startTime.localeCompare(b.startTime)))
+    } else {
+      const stored = localStorage.getItem("ai-life-os-schedule")
+      const parsed = stored ? JSON.parse(stored) : {}
+      const todayEvents: ScheduleEvent[] = parsed[today] || []
+      setEvents(todayEvents.sort((a, b) => a.startTime.localeCompare(b.startTime)))
     }
+  } catch {
+    const stored = localStorage.getItem("ai-life-os-schedule")
+    const parsed = stored ? JSON.parse(stored) : {}
+    const todayEvents: ScheduleEvent[] = parsed[today] || []
+    setEvents(todayEvents.sort((a, b) => a.startTime.localeCompare(b.startTime)))
+  }
+}
 
     load()
   }, [])
