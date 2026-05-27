@@ -184,17 +184,60 @@ if (res.status === 401) {
   load()
 }, [])
 
-  async function handleAiSubmit() {
-    if (!aiInput.trim()) return
-    const userText = aiInput
-    setAiLoading(true)
-    setChatHistory(prev => [...prev, { role: "user", text: userText }])
-    setAiInput("")
-    setTimeout(() => {
-      setChatHistory(prev => [...prev, { role: "ai", text: "Got it! I'll update your workout plan." }])
-      setAiLoading(false)
-    }, 1000)
+async function handleAiSubmit() {
+  if (!aiInput.trim()) return
+  const userText = aiInput
+  setAiLoading(true)
+  setChatHistory(prev => [...prev, { role: "user", text: userText }])
+  setAiInput("")
+  try {
+    const res = await fetch("/api/workout-ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: userText,
+        workout: editingWorkout,
+        dayKey: selectedDayKey,
+        todayKey: TODAY_KEY,
+        availableDays: DAYS.map(d => ({
+          key: d.key,
+          label: d.label,
+          date: d.date,
+          isToday: d.key === TODAY_KEY,
+          workout: workouts[d.key] || null,
+        })),
+      }),
+    })
+    const data = await res.json()
+
+    const targetKey = data.dayKey || selectedDayKey
+
+    if ((data.action === "add" || data.action === "update") && data.workout && targetKey) {
+      const existing = workouts[targetKey]
+      const newDay: DayData = {
+        day: "",
+        date: new Date().getDate(),
+        ...existing,
+        ...data.workout,
+        exercises: data.workout.exercises || existing?.exercises || [],
+      }
+      saveWorkouts({ ...workouts, [targetKey]: newDay })
+      saveWorkoutToDB(targetKey, newDay)
+      setSelectedDayKey(targetKey)
+      setEditingWorkout(newDay)
+      setActiveWeek(
+        LAST_WEEK.some(d => d.key === targetKey) ? "last" :
+        NEXT_WEEK.some(d => d.key === targetKey) ? "next" : "this"
+      )
+    }
+
+    setChatHistory(prev => [...prev, { role: "ai", text: data.response || "Done!" }])
+  } catch {
+    setChatHistory(prev => [...prev, { role: "ai", text: "Something went wrong. Try again." }])
+  } finally {
+    setAiLoading(false)
   }
+}
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#F5F4F0]">
@@ -555,7 +598,7 @@ if (res.status === 401) {
           <div className="w-72 flex-shrink-0 border-l border-gray-100 bg-white flex flex-col overflow-hidden">
             <div className="px-4 py-3 flex-shrink-0 flex items-center gap-2" style={{ background: "linear-gradient(135deg,#534AB7,#7F77DD)" }}>
               <Sparkles size={14} className="text-white" />
-              <span className="text-sm font-medium text-white">Log workout with AI</span>
+              <span className="text-sm font-medium text-white">Add workout with AI</span>
             </div>
             <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
               {chatHistory.length === 0 && (
