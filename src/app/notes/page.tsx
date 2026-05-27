@@ -45,8 +45,14 @@ const COLOR_CONFIG: Record<TagColor, { bg: string; text: string; border: string;
   teal:   { bg: "#E1F5EE", text: "#085041", border: "#9FE1CB", dot: "#1D9E75", miniHeader: "#E1F5EE", miniBorder: "#9FE1CB" },
   coral:  { bg: "#FAECE7", text: "#712B13", border: "#F0997B", dot: "#D85A30", miniHeader: "#FAECE7", miniBorder: "#F5C4B3" },
   amber:  { bg: "#FAEEDA", text: "#633806", border: "#FAC775", dot: "#BA7517", miniHeader: "#FAEEDA", miniBorder: "#FAC775" },
-  gray:   { bg: "#F1EFE8", text: "#444441", border: "#B4B2A9", dot: "#5F5E5A", miniHeader: "#F1EFE8", miniBorder: "#D3D1C7" },
-
+  gray: {
+  bg: "#E6F1FB",
+  text: "#1E4F8F",
+  border: "#7CB0E8",
+  dot: "#3F88E8",
+  miniHeader: "#EEF2F7",
+  miniBorder: "#B8D1EE"
+},
 }
 const COLOR_MAP = {
   purple: { bg: "bg-brand-50",  text: "text-brand-900",  dot: "#534AB7",  accent: "#AFA9EC" },
