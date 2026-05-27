@@ -1,6 +1,5 @@
 "use client"
-
-import { LayoutDashboard, Target, CheckSquare, Calendar, Mail, BarChart2, BookOpen, Smile, Settings, Clock, Utensils, Dumbbell, DollarSign } from "lucide-react"
+import { LayoutDashboard, Target, CheckSquare, Calendar, Mail, BarChart2, BookOpen, Smile, Settings, Clock, Utensils, Dumbbell, DollarSign, StickyNote } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useSession, signIn, signOut } from "next-auth/react"
@@ -9,9 +8,10 @@ import { useSession, signIn, signOut } from "next-auth/react"
 const NAV_WORKSPACE = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/",        page: "dashboard" },
   { icon: CheckSquare,     label: "Tasks",      href: "/tasks",   page: "tasks" },
-  { icon: Clock, label: "Schedule", href: "/schedule", page: "schedule" },
-  { icon: Utensils,          label: "Meal",      href: "/meal",   page: "meal" },
-  { icon: Dumbbell,        label: "Workout",   href: "/workout",page: "workout" },
+  { icon: Clock,           label: "Schedule",   href: "/schedule",page: "schedule" },
+  { icon: Utensils,        label: "Meal",       href: "/meal",    page: "meal" },
+  { icon: Dumbbell,        label: "Workout",    href: "/workout", page: "workout" },
+  { icon: StickyNote,      label: "Notes",      href: "/notes",   page: "notes" },
 ]
 
 const NAV_AGENTS = [
