@@ -215,10 +215,10 @@ async function handleAiSubmit() {
     if ((data.action === "add" || data.action === "update") && data.workout && targetKey) {
       const existing = workouts[targetKey]
       const newDay: DayData = {
-        day: "",
-        date: new Date().getDate(),
         ...existing,
         ...data.workout,
+        day: existing?.day || "",
+        date: existing?.date || new Date().getDate(),
         exercises: data.workout.exercises || existing?.exercises || [],
       }
       saveWorkouts({ ...workouts, [targetKey]: newDay })
