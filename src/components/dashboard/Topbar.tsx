@@ -13,7 +13,7 @@ export function Topbar() {
 
   return (
     <header className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between flex-shrink-0">
-      <p className="text-base font-medium text-gray-800">{greeting}{firstName ? `, ${firstName}` : ""} 👋</p>
+      <p className="text-lg font-medium text-gray-800">{greeting}{firstName ? `, ${firstName}` : ""} 👋</p>
       <div className="flex items-center gap-2">
         <span className="text-[11px] text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1 rounded-full">
           {today}

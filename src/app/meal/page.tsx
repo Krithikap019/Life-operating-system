@@ -342,7 +342,7 @@ export default function MealPrepPage() {
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
         <div className="bg-white border-b border-gray-100 px-5 flex items-center justify-between py-3 flex-shrink-0">
-          <p className="text-base font-medium text-gray-800">Meal Prep</p>
+          <p className="text-lg font-medium text-gray-800">Meal </p>
           <button onClick={() => openAddModal("lunch", selectedDay)}
             className="flex items-center gap-1.5 bg-brand-600 text-white text-sm px-4 py-2 rounded-full hover:bg-brand-800 transition-colors">
             <Plus size={12} /> Add meal

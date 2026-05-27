@@ -450,7 +450,7 @@ async function handleAiEdit() {
 
         <div className="bg-white border-b border-gray-100 px-5 flex flex-col flex-shrink-0">
           <div className="flex items-center justify-between py-3">
-            <p className="text-base font-medium text-gray-800">Schedule</p>
+            <p className="text-lg font-medium text-gray-800">Schedule</p>
           <button onClick={() => { setShowAddModal(true); setNewEvent(p => ({ ...p, date: currentDate })) }}
             className="flex items-center gap-1.5 bg-brand-600 text-white text-sm px-4 py-2 rounded-full hover:bg-brand-800 transition-colors">
             <Plus size={12} /> Add event

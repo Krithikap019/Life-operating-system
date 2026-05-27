@@ -176,7 +176,7 @@ export default function TasksPage() {
 
         {/* Topbar */}
         <div className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between flex-shrink-0">
-          <p className="text-base font-medium text-gray-800">Tasks</p>
+          <p className="text-lg font-medium text-gray-800">Tasks</p>
           <button
             onClick={() => openAdd()}
             className="flex items-center gap-1.5 bg-brand-600 text-white text-sm px-4 py-2 rounded-full hover:bg-brand-800 transition-colors"

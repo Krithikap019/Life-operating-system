@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Sidebar } from "@/components/dashboard/Sidebar"
 import { Plus, X, ChevronDown, ChevronRight, Trash2, Edit2, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useSession } from "next-auth/react"
 
 type ContentType = "plain" | "mininotes" | "list"
 type TagColor = "purple" | "teal" | "amber" | "coral" | "gray"
@@ -34,10 +35,10 @@ interface Note {
 
 const TAG_OPTIONS: { label: string; color: TagColor }[] = [
   { label: "Work",     color: "teal"   },
-  { label: "Personal", color: "amber"   },
-  { label: "Career",   color: "purple"  },
+  { label: "Personal", color: "amber"  },
+  { label: "Career",   color: "purple" },
   { label: "Urgent",   color: "coral"  },
-  { label: "Other",    color: "gray" },
+  { label: "Other",    color: "gray"   },
 ]
 
 const COLOR_CONFIG: Record<TagColor, { bg: string; text: string; border: string; dot: string; miniHeader: string; miniBorder: string }> = {
@@ -45,15 +46,9 @@ const COLOR_CONFIG: Record<TagColor, { bg: string; text: string; border: string;
   teal:   { bg: "#E1F5EE", text: "#085041", border: "#9FE1CB", dot: "#1D9E75", miniHeader: "#E1F5EE", miniBorder: "#9FE1CB" },
   coral:  { bg: "#FAECE7", text: "#712B13", border: "#F0997B", dot: "#D85A30", miniHeader: "#FAECE7", miniBorder: "#F5C4B3" },
   amber:  { bg: "#FAEEDA", text: "#633806", border: "#FAC775", dot: "#BA7517", miniHeader: "#FAEEDA", miniBorder: "#FAC775" },
-  gray: {
-  bg: "#E6F1FB",
-  text: "#1E4F8F",
-  border: "#7CB0E8",
-  dot: "#3F88E8",
-  miniHeader: "#EEF2F7",
-  miniBorder: "#B8D1EE"
-},
+  gray:   { bg: "#E6F1FB", text: "#1E4F8F", border: "#7CB0E8", dot: "#3F88E8", miniHeader: "#EEF2F7", miniBorder: "#B8D1EE" },
 }
+
 const COLOR_MAP = {
   purple: { bg: "bg-brand-50",  text: "text-brand-900",  dot: "#534AB7",  accent: "#AFA9EC" },
   teal:   { bg: "bg-teal-50",   text: "text-teal-800",   dot: "#1D9E75",  accent: "#9FE1CB" },
@@ -102,10 +97,7 @@ function PlainNoteBody({ content, onChange }: { content: string; onChange: (v: s
           className="w-full text-sm text-gray-700 placeholder-gray-300 border border-gray-100 rounded-xl px-4 py-3 bg-gray-50 outline-none focus:border-brand-300 resize-none leading-relaxed" />
       ) : (
         <div className="min-h-[120px] text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-all border border-gray-100 rounded-xl px-4 py-3 bg-gray-50">
-          {content
-            ? renderWithLinks(content)
-            : <span className="text-gray-300">Start writing…</span>
-          }
+          {content ? renderWithLinks(content) : <span className="text-gray-300">Start writing…</span>}
         </div>
       )}
     </div>
@@ -126,19 +118,14 @@ function renderWithLinks(text: string) {
 
 function MiniNoteBody({ content, onChange }: { content: string; onChange: (v: string) => void }) {
   const [editing, setEditing] = useState(false)
-
   return (
     <div className="px-4 py-3 cursor-text" onClick={() => setEditing(true)}>
       {editing ? (
-        <textarea
-          value={content}
-          onChange={e => onChange(e.target.value)}
+        <textarea value={content} onChange={e => onChange(e.target.value)}
           onBlur={() => setEditing(false)}
-          autoFocus
-          rows={3}
+          autoFocus rows={3}
           className="w-full text-sm text-gray-700 placeholder-gray-300 bg-transparent outline-none resize-none leading-relaxed"
-          placeholder="Write notes here…"
-        />
+          placeholder="Write notes here…" />
       ) : (
         <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap break-all min-h-[48px]">
           {content
@@ -171,12 +158,28 @@ export default function NotesPage() {
   const [editingTitleText, setEditingTitleText] = useState("")
   const [newMiniTitle, setNewMiniTitle] = useState("")
   const [newListItem, setNewListItem] = useState("")
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
 
   useEffect(() => {
-    const loaded = loadNotes()
-    setNotes(loaded)
-    if (loaded.length > 0) setSelectedId(loaded[0].id)
-  }, [])
+    async function load() {
+      if (isLoggedIn) {
+        try {
+          const res = await fetch("/api/notes")
+          const data = await res.json()
+          setNotes(data.notes || [])
+          if (data.notes?.length > 0) setSelectedId(data.notes[0].id)
+        } catch (err) {
+          console.error(err)
+        }
+        return
+      }
+      const local = loadNotes()
+      setNotes(local)
+      if (local.length > 0) setSelectedId(local[0].id)
+    }
+    load()
+  }, [isLoggedIn])
 
   const filteredNotes = notes.filter(n => filter === "all" || getFilterLabel(n) === filter)
 
@@ -190,25 +193,28 @@ export default function NotesPage() {
 
   const selectedNote = notes.find(n => n.id === selectedId) ?? null
 
-  function updateNote(updated: Note) {
+  async function updateNote(updated: Note) {
     const next = notes.map(n => n.id === updated.id ? updated : n)
     setNotes(next)
-    saveNotes(next)
+    if (isLoggedIn) {
+      try {
+        await fetch("/api/notes", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        })
+      } catch (err) { console.error("Update failed:", err) }
+    } else {
+      saveNotes(next)
+    }
   }
 
-  function deleteNote(id: string) {
-    const next = notes.filter(n => n.id !== id)
-    setNotes(next)
-    saveNotes(next)
-    setSelectedId(next.length > 0 ? next[0].id : null)
-  }
-
-  function addNote() {
+  async function addNote() {
     if (!newNote.title.trim()) return
     const tag = TAG_OPTIONS.find(t => t.label === newNote.tag) || TAG_OPTIONS[0]
     const note: Note = {
-      id: Date.now().toString(),
-      title: newNote.title,
+      id: crypto.randomUUID(),
+      title: newNote.title.trim(),
       tag: tag.label,
       tagColor: tag.color,
       contentType: newNote.contentType,
@@ -219,15 +225,42 @@ export default function NotesPage() {
     }
     const next = [note, ...notes]
     setNotes(next)
-    saveNotes(next)
-    setSelectedId(note.id)
     setShowAddModal(false)
+    setSelectedId(note.id)
     setNewNote({ title: "", tag: "Work", tagColor: "teal", contentType: "plain" })
+    if (isLoggedIn) {
+      try {
+        await fetch("/api/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(note),
+        })
+      } catch (err) { console.error("Create failed:", err) }
+    } else {
+      saveNotes(next)
+    }
+  }
+
+  async function deleteNote(id: string) {
+    const next = notes.filter(n => n.id !== id)
+    setNotes(next)
+    setSelectedId(next.length > 0 ? next[0].id : null)
+    if (isLoggedIn) {
+      try {
+        await fetch("/api/notes", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+      } catch (err) { console.error("Delete failed:", err) }
+    } else {
+      saveNotes(next)
+    }
   }
 
   function addMiniNote() {
     if (!selectedNote || !newMiniTitle.trim()) return
-    const mini: MiniNote = { id: Date.now().toString(), title: newMiniTitle, content: "", collapsed: false }
+    const mini: MiniNote = { id: crypto.randomUUID(), title: newMiniTitle.trim(), content: "", collapsed: false }
     updateNote({ ...selectedNote, miniNotes: [...selectedNote.miniNotes, mini] })
     setNewMiniTitle("")
   }
@@ -244,7 +277,7 @@ export default function NotesPage() {
 
   function addListItem() {
     if (!selectedNote || !newListItem.trim()) return
-    updateNote({ ...selectedNote, listItems: [...selectedNote.listItems, { id: Date.now().toString(), text: newListItem }] })
+    updateNote({ ...selectedNote, listItems: [...selectedNote.listItems, { id: crypto.randomUUID(), text: newListItem.trim() }] })
     setNewListItem("")
   }
 
@@ -274,7 +307,7 @@ export default function NotesPage() {
 
         {/* Top bar */}
         <div className="bg-white border-b border-gray-100 px-5 flex items-center justify-between py-3 flex-shrink-0">
-          <p className="text-base font-medium text-gray-800">Notes</p>
+          <p className="text-lg font-medium text-gray-800">Notes</p>
           <button onClick={() => setShowAddModal(true)}
             className="flex items-center gap-1.5 bg-brand-600 text-white text-sm px-4 py-2 rounded-full hover:bg-brand-800 transition-colors">
             <Plus size={12} /> New note
@@ -320,14 +353,14 @@ export default function NotesPage() {
                 const isSelected = selectedId === note.id
                 return (
                   <div key={note.id} onClick={() => setSelectedId(note.id)}
-                  className="cursor-pointer transition-colors mx-2 my-1 rounded-xl px-3 py-3"
-                  style={{
-                    background: c.bg,
-                    outline: isSelected ? `2px solid ${c.dot}` : "none",
-                    outlineOffset: "-1px",
-                  }}>
+                    className="cursor-pointer transition-colors mx-2 my-1 rounded-xl px-3 py-3"
+                    style={{
+                      background: c.bg,
+                      outline: isSelected ? `2px solid ${c.dot}` : "none",
+                      outlineOffset: "-1px",
+                    }}>
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-medium truncate flex-1" style = {{color: c.text}}>
+                      <p className="text-sm font-medium truncate flex-1" style={{ color: c.text }}>
                         {note.title}
                       </p>
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full ml-2 flex-shrink-0 font-medium"
@@ -361,7 +394,7 @@ export default function NotesPage() {
               const c = COLOR_CONFIG[selectedNote.tagColor]
               return (
                 <>
-                  {/* Header card — purple border when selected */}
+                  {/* Header card */}
                   <div className="bg-white rounded-2xl p-5">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
@@ -405,12 +438,11 @@ export default function NotesPage() {
                       </button>
                     </div>
 
-                    {/* Plain content */}
                     {selectedNote.contentType === "plain" && (
                       <PlainNoteBody
-  content={selectedNote.content}
-  onChange={content => updateNote({ ...selectedNote, content })}
-/>
+                        content={selectedNote.content}
+                        onChange={content => updateNote({ ...selectedNote, content })}
+                      />
                     )}
                   </div>
 
@@ -422,22 +454,22 @@ export default function NotesPage() {
                           style={{ border: `0.5px solid ${c.border}` }}>
                           <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                             <button onClick={() => updateMiniNote(mini.id, { collapsed: !mini.collapsed })}
-                                className="text-gray-400 hover:text-gray-600">
-                                {mini.collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
-                              </button>
-                              <input value={mini.title} onChange={e => updateMiniNote(mini.id, { title: e.target.value })}
-                                className="flex-1 text-sm font-medium bg-transparent outline-none text-gray-700"
-                                placeholder="Sub-note title…" />
+                              className="text-gray-400 hover:text-gray-600">
+                              {mini.collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                            <input value={mini.title} onChange={e => updateMiniNote(mini.id, { title: e.target.value })}
+                              className="flex-1 text-sm font-medium bg-transparent outline-none text-gray-700"
+                              placeholder="Sub-note title…" />
                             <button onClick={() => deleteMiniNote(mini.id)} className="text-gray-400 hover:text-red-400 transition-colors">
                               <Trash2 size={13} />
                             </button>
                           </div>
-                    {!mini.collapsed && (
-                      <MiniNoteBody
-                        content={mini.content}
-                        onChange={content => updateMiniNote(mini.id, { content })}
-                      />
-                    )}
+                          {!mini.collapsed && (
+                            <MiniNoteBody
+                              content={mini.content}
+                              onChange={content => updateMiniNote(mini.id, { content })}
+                            />
+                          )}
                         </div>
                       ))}
                       <div className="flex items-center gap-2">

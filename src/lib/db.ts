@@ -87,6 +87,26 @@ await sql`
   ALTER TABLE schedule_events 
   ADD COLUMN IF NOT EXISTS date TEXT
 `
+  await sql`
+    CREATE TABLE IF NOT EXISTS notes (
+      id TEXT PRIMARY KEY,
+
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+      title TEXT NOT NULL,
+      tag TEXT NOT NULL,
+      tag_color TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+
+      content TEXT DEFAULT '',
+
+      mini_notes JSONB DEFAULT '[]',
+      list_items JSONB DEFAULT '[]',
+
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `
 }
 
 export { sql }
